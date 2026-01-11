@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap" rel="stylesheet">
-  <title>וורדל׳ה - משחק ב-6 ניחושים</title>
+  <title>מאיוורדל - משחק ב-6 ניחושים</title>
   <!-- Firebase App (the core Firebase SDK) -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <!-- Add Firebase products that you want to use -->
@@ -215,18 +215,27 @@ console.log(countPlayersPerDay());
               width:clamp(0.5vw,13vw,40px);
               
           }
+          #topBar .title-container {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+          }
       </style>
       <div><button class="rules" onclick="openInstructions()">
-          <span id="modeIndicator" style="font-family: 'Secular One'; font-size: clamp(0.5vw,13vw,40px); font-weight: bold; color: rgb(0, 112, 112);">?</span>
+          <span style="font-family: 'Secular One'; font-size: clamp(0.5vw,13vw,40px); font-weight: bold; color: rgb(0, 112, 112);">?</span>
       </button></div>
       <div>
-          <h1 class="title">וורדל׳ה</h1>
+          <div class="title-container">
+              <h1 class="title">מאיוורדל</h1>
+          </div>
       </div>
       <div>
           <img src="wordale-favicon-new.png">
       </div>
-      <div>
-          <button onclick="showPasswordPrompt()" style="border: none; background-color: transparent; font-family: 'Secular One'; font-size: clamp(0.5vw,5vw,15px); cursor: pointer;">➡️ מילה הבאה</button>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <button onclick="showPasswordPrompt()" style="border: none; background-color: transparent; font-family: 'Secular One'; font-size: clamp(0.5vw,5vw,15px); cursor: pointer;">מילה הבאה</button>
+          <span id="modeIndicator" style="font-family: 'Secular One'; font-size: clamp(8px, 2vw, 12px); font-weight: bold; color: rgb(0, 112, 112);">?</span>
       </div>
   </div>
 </head>
@@ -243,7 +252,7 @@ console.log(countPlayersPerDay());
   <div id="notify2">
       <div id="timerWithLabel">
         <div id="timer"></div>
-        <div>:וורדל׳ה חדשה</div>
+        <div>:מאיוורדל חדשה</div>
       </div>
       <button id="shareButton" onclick="shareResults()">⬆️ שיתוף תוצאות</button>
       <button id="statsOpenButton" onclick="openStats()">📊 סטטיסטיקה</button>
@@ -602,7 +611,7 @@ if (event.target == modal) {
   </div>    
 
   <p>בכל יום משתנה המילה.</p>
-  <p><strong>וורדל׳ה</strong> – וורדל בעברית.<br>פותח על ידי יאיר הספרי.<br>מבוסס על Wordle.</p>
+  <p><strong>מאיוורדל</strong> – וורדל בעברית.<br>פותח על ידי יאיר הספרי.<br>מבוסס על Wordle.</p>
 </div>
 </div>
 
