@@ -869,12 +869,12 @@ if (event.target == modal) {
     // Save it before restoring the main list
     console.log('After loading wordlist-manual.js:');
     console.log('listOfWords length:', listOfWords ? listOfWords.length : 'undefined');
+    console.log('mainListOfWords length:', window.mainListOfWords ? window.mainListOfWords.length : 'undefined');
     console.log('First word in listOfWords:', listOfWords ? listOfWords[0] : 'undefined');
-    console.log('Expected first word (שמיכה): שמיכה');
-    console.log('Match?', listOfWords && listOfWords[0] === 'שמיכה');
     
-    if (listOfWords && listOfWords.length < 100 && listOfWords[0] === 'שמיכה') {
-      // This looks like the manual list (small, ~15 words, starts with שמיכה)
+    // Check if this is the manual list (small list, not the main 1469-word list)
+    if (listOfWords && listOfWords.length < 100 && listOfWords.length !== window.mainListOfWords.length) {
+      // This looks like the manual list (small, different from main list)
       window.manualListOfWords = listOfWords.slice(); // Make a copy
       console.log('✓ Manual wordlist saved correctly, length:', window.manualListOfWords.length);
       console.log('✓ First word in manual list:', window.manualListOfWords[0]);
@@ -882,15 +882,16 @@ if (event.target == modal) {
     } else {
       console.error('✗ ERROR: Manual wordlist not found or incorrect!');
       console.error('listOfWords length:', listOfWords ? listOfWords.length : 'undefined');
+      console.error('mainListOfWords length:', window.mainListOfWords ? window.mainListOfWords.length : 'undefined');
       console.error('First word:', listOfWords ? listOfWords[0] : 'undefined');
-      console.error('Expected first word: שמיכה');
-      // Try to manually create the manual wordlist as fallback
-      window.manualListOfWords = [
-        "שמיכה", "שבלול", "חיקוי", "השלמה", "טמטום",
-        "הקרבה", "טיעון", "שקדיה", "ריגול", "תרופה",
-        'צוללת', 'שבתאי', 'רוסיה', "קבינט"
-      ];
-      console.log('Created manual wordlist as fallback, length:', window.manualListOfWords.length);
+      // If listOfWords is small and different from main, use it anyway
+      if (listOfWords && listOfWords.length < 100) {
+        window.manualListOfWords = listOfWords.slice();
+        console.log('Using current listOfWords as manual list, length:', window.manualListOfWords.length);
+      } else {
+        console.error('Could not determine manual wordlist - using empty array');
+        window.manualListOfWords = [];
+      }
     }
     
     // Now restore the main wordlist
