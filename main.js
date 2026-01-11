@@ -661,7 +661,7 @@ document.getElementById(letter).style.color = "white";
 
 }
 function shareResults() {
-let shareResult = `וורדל\'ה # ${numOfWordale}` + "\n";
+let shareResult = `מאיוורדל׳ה # ${numOfWordale}` + "\n";
 shareResult += `נסיון ${wordCount} מתוך 6` + "\n";
 
 for (i = 0; i < answersColors.length; i++) {
@@ -670,7 +670,7 @@ for (i = 0; i < answersColors.length; i++) {
     shareResult = shareResult + result + "\n";
 
 }
-shareResult = shareResult + "\n" + "וורדל בעברית:" + "\n" + "https://yairhasfari.github.io/wordale";
+shareResult = shareResult + "\n" + "מאיוורדל׳ה 👩‍🦰" + "\n" + "https://yairhasfari.github.io/wordale";
 navigator.clipboard.writeText(shareResult);
 // let shareButton = "<input id=\"shareButton\" onclick=\"shareResults()\" value=\"תוצאות הועתקו ללוח\">"
 // document.getElementById('notify2').innerHTML = shareButton;
