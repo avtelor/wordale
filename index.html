@@ -140,6 +140,22 @@ console.log(countPlayersPerDay());
       /*LOAD LOAD LOAD LOAD LOAD LOAD LOAD IMPORTANT*/
   
       window.loadUserData();
+      
+      // Initialize manual mode UI
+      setTimeout(function() {
+          const manualMode = localStorage.getItem('manualMode') === 'true';
+          if (manualMode) {
+              const manualControls = document.getElementById('manualModeControls');
+              const timerLabel = document.getElementById('timerWithLabel');
+              if (manualControls) manualControls.style.display = 'flex';
+              if (timerLabel) timerLabel.style.display = 'none';
+          } else {
+              const manualControls = document.getElementById('manualModeControls');
+              const timerLabel = document.getElementById('timerWithLabel');
+              if (manualControls) manualControls.style.display = 'none';
+              if (timerLabel) timerLabel.style.display = 'flex';
+          }
+      }, 100);
 
       /*LOAD LOAD LOAD LOAD LOAD LOAD LOAD IMPORTANT*/
 
@@ -207,7 +223,9 @@ console.log(countPlayersPerDay());
       <div>
           <img src="wordale-favicon-new.png">
       </div>
-      <div>&nbsp; </div>
+      <div>
+          <button onclick="toggleManualMode()" style="border: none; background-color: transparent; font-family: 'Secular One'; font-size: clamp(0.5vw,5vw,15px); cursor: pointer;">🎮 מצב ידני</button>
+      </div>
   </div>
 </head>
 
@@ -227,6 +245,10 @@ console.log(countPlayersPerDay());
       </div>
       <button id="shareButton" onclick="shareResults()">⬆️ שיתוף תוצאות</button>
       <button id="statsOpenButton" onclick="openStats()">📊 סטטיסטיקה</button>
+      <div id="manualModeControls" style="display: none;">
+        <button id="nextWordButton" onclick="showPasswordPrompt()">➡️ מילה הבאה</button>
+        <button id="exitManualModeButton" onclick="toggleManualMode()">🚪 יציאה ממצב ידני</button>
+      </div>
     </div>
   <style>
   body {
@@ -290,6 +312,35 @@ font-size: inherit;
 white-space: nowrap;
 overflow: hidden;
 text-overflow: ellipsis;
+}
+
+#manualModeControls {
+display: flex;
+gap: 4px;
+align-items: center;
+flex-shrink: 1;
+}
+
+#nextWordButton,
+#exitManualModeButton {
+background-color: transparent;
+color: white;
+border: none;
+padding: 4px 4px;
+border-radius: 10px;
+cursor: pointer;
+font-family: 'Secular One', sans-serif;
+font-size: inherit;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+flex-shrink: 1;
+max-width: 33%;
+}
+
+#nextWordButton:hover,
+#exitManualModeButton:hover {
+background-color: rgba(255, 255, 255, 0.1);
 }
 
 #timerWithLabel {

@@ -26,8 +26,20 @@ const startDate = new Date(2022, 0, 11);
 const summerClockStartDate = new Date(2022,2,26)
 //today:
 let today = new Date();
+// Manual mode variables
+let manualMode = false;
+let manualWordIndex = 0;
+const MANUAL_MODE_PASSWORD = "6060";
 //word index is the numOfWordale calculated later on
-let pickedWord = pickWord();
+// Check if manual mode is enabled in localStorage
+manualMode = localStorage.getItem('manualMode') === 'true';
+if (manualMode) {
+    manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
+    pickedWord = listOfWords[manualWordIndex];
+    numOfWordale = manualWordIndex;
+} else {
+    pickedWord = pickWord();
+}
 //set the timer for next wordale
 countDownTimer();
 
@@ -46,17 +58,20 @@ fail: 3
 const userGuess = 3;
 
 function pickWord() {
-//This is for WinterClock, please uncomment differenceInTime equation and also differenceInDays equation.
-var differenceInTime = today.getTime() - startDate.getTime();
-// To calculate the no. of days between two dates
-var differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24)); //added 74 since it screwed the 1 hour difference between gmt+3 and gmt+2; 
- //This is for SummerClock, please uncomment differenceInTime equation and also differenceInDays equation.
-   
-//var differenceInTime = today.getTime() - summerClockStartDate.getTime();
-//var differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24)) + 74; //added 74 since it screwed the 1 hour difference between gmt+3 and gmt+2; 
-numOfWordale = differenceInDays;
+    if (manualMode) {
+        return listOfWords[manualWordIndex];
+    }
+    //This is for WinterClock, please uncomment differenceInTime equation and also differenceInDays equation.
+    var differenceInTime = today.getTime() - startDate.getTime();
+    // To calculate the no. of days between two dates
+    var differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24)); //added 74 since it screwed the 1 hour difference between gmt+3 and gmt+2; 
+     //This is for SummerClock, please uncomment differenceInTime equation and also differenceInDays equation.
+       
+    //var differenceInTime = today.getTime() - summerClockStartDate.getTime();
+    //var differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24)) + 74; //added 74 since it screwed the 1 hour difference between gmt+3 and gmt+2; 
+    numOfWordale = differenceInDays;
 
-return listOfWords[differenceInDays];
+    return listOfWords[differenceInDays];
 }
 
 function clickLetter(value) {
@@ -724,6 +739,105 @@ var x = setInterval(function () {
         
     }
 }, 1000);
+}
+
+function toggleManualMode() {
+    manualMode = !manualMode;
+    localStorage.setItem('manualMode', manualMode.toString());
+    
+    const manualControls = document.getElementById('manualModeControls');
+    const timerLabel = document.getElementById('timerWithLabel');
+    
+    if (manualMode) {
+        manualWordIndex = 0;
+        localStorage.setItem('manualWordIndex', '0');
+        resetGameForNewWord();
+        pickedWord = listOfWords[0];
+        numOfWordale = 0;
+        if (manualControls) manualControls.style.display = 'flex';
+        if (timerLabel) timerLabel.style.display = 'none';
+    } else {
+        localStorage.removeItem('manualWordIndex');
+        resetGameForNewWord();
+        pickedWord = pickWord();
+        if (manualControls) manualControls.style.display = 'none';
+        if (timerLabel) timerLabel.style.display = 'flex';
+    }
+}
+
+function resetGameForNewWord() {
+    win = false;
+    endOfGameToday = false;
+    rowCount = 1;
+    wordCount = 0;
+    currentWord = '';
+    answersColors = [];
+    answersLetters = [];
+    
+    // Clear all tiles
+    for (let r = 1; r <= 6; r++) {
+        for (let c = 1; c <= 5; c++) {
+            const tile = document.getElementById(`tile${r}${c}`);
+            if (tile) {
+                tile.innerHTML = '';
+                tile.style.backgroundColor = '';
+                tile.style.border = "solid rgb(212, 212, 212)";
+                tile.style.color = '';
+                tile.setAttribute('data-animation', 'idle');
+            }
+        }
+    }
+    
+    // Reset keyboard button colors
+    const hebrewLetters = 'אבגדהוזחטיכלמנסעפצקרשתםןץףך';
+    for (let i = 0; i < hebrewLetters.length; i++) {
+        const letter = hebrewLetters[i];
+        const button = document.getElementById(letter);
+        if (button) {
+            button.style.backgroundColor = '';
+            button.style.color = '';
+        }
+    }
+    
+    // Hide notifications
+    const notify = document.getElementById('notify');
+    const notify2 = document.getElementById('notify2');
+    if (notify) notify.style.height = "0%";
+    if (notify2) {
+        notify2.style.height = "0%";
+        notify2.style.visibility = "hidden";
+    }
+    
+    // Clear localStorage for current game
+    localStorage.removeItem('userDate');
+    localStorage.removeItem('answersColors');
+    localStorage.removeItem('answersLetters');
+}
+
+function showPasswordPrompt() {
+    const password = prompt("הזן סיסמה בת 4 ספרות כדי לעבור למילה הבאה:");
+    if (password === MANUAL_MODE_PASSWORD) {
+        moveToNextWord();
+    } else if (password !== null) {
+        openNotification('סיסמה שגויה');
+    }
+}
+
+function moveToNextWord() {
+    if (!manualMode) return;
+    
+    manualWordIndex++;
+    if (manualWordIndex >= listOfWords.length) {
+        openNotification('סיימת את כל המילים!');
+        manualWordIndex = listOfWords.length - 1;
+        return;
+    }
+    
+    localStorage.setItem('manualWordIndex', manualWordIndex.toString());
+    pickedWord = listOfWords[manualWordIndex];
+    numOfWordale = manualWordIndex;
+    resetGameForNewWord();
+    openNotification(`מילה ${manualWordIndex + 1} מתוך ${listOfWords.length}`);
 }
 
 //loadUserData();
