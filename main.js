@@ -35,13 +35,31 @@ const MANUAL_MODE_PASSWORD = "6060";
 manualMode = localStorage.getItem('manualMode') === 'true';
 if (manualMode) {
     manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
-    // Make sure index is valid
-    if (manualWordIndex < 0 || manualWordIndex >= listOfWords.length) {
+    // Get the manual wordlist
+    let manualWordList = window.manualListOfWords;
+    console.log('Initialization - manualWordList:', manualWordList);
+    console.log('Initialization - manualWordList length:', manualWordList ? manualWordList.length : 'undefined');
+    console.log('Initialization - mainListOfWords length:', window.mainListOfWords ? window.mainListOfWords.length : 'undefined');
+    
+    // Check if manualWordList is actually the manual list (should be ~15 words, not 1462)
+    if (manualWordList && manualWordList.length > 0 && manualWordList.length < 100) {
+        // This looks like the manual list (small number of words)
+        if (manualWordIndex < 0 || manualWordIndex >= manualWordList.length) {
+            manualWordIndex = 0;
+            localStorage.setItem('manualWordIndex', '0');
+        }
+        pickedWord = manualWordList[manualWordIndex];
+        numOfWordale = manualWordIndex;
+        console.log('Manual mode - using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
+    } else {
+        // manualWordList is wrong (probably pointing to main list) or not loaded
+        console.error('Manual wordlist not found or incorrect! manualWordList length:', manualWordList ? manualWordList.length : 'undefined');
+        // Reset to first word and use main list as fallback
         manualWordIndex = 0;
         localStorage.setItem('manualWordIndex', '0');
+        pickedWord = pickWord();
+        console.log('Manual mode - falling back to main list, word:', pickedWord);
     }
-    pickedWord = listOfWords[manualWordIndex];
-    numOfWordale = manualWordIndex;
 } else {
     pickedWord = pickWord();
 }
@@ -64,7 +82,18 @@ const userGuess = 3;
 
 function pickWord() {
     if (manualMode) {
-        return listOfWords[manualWordIndex];
+        const manualWordList = window.manualListOfWords || [];
+        console.log('pickWord in manual mode - manualWordList:', manualWordList, 'length:', manualWordList.length, 'manualWordIndex:', manualWordIndex);
+        if (manualWordList.length > 0) {
+            if (manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
+                console.log('Returning word from manual list:', manualWordList[manualWordIndex]);
+                return manualWordList[manualWordIndex];
+            }
+            console.log('Index out of bounds, returning first word from manual list:', manualWordList[0]);
+            return manualWordList[0];
+        }
+        console.log('Manual list empty or not loaded, falling back to main list');
+        return listOfWords[0];
     }
     //This is for WinterClock, please uncomment differenceInTime equation and also differenceInDays equation.
     var differenceInTime = today.getTime() - startDate.getTime();
@@ -757,49 +786,70 @@ function toggleManualMode() {
     manualMode = !manualMode;
     localStorage.setItem('manualMode', manualMode.toString());
     
-    const manualControls = document.getElementById('manualModeControls');
     const timerLabel = document.getElementById('timerWithLabel');
-    const notify2 = document.getElementById('notify2');
     
     console.log('toggleManualMode called - manualMode:', manualMode);
-    console.log('manualControls:', manualControls, 'timerLabel:', timerLabel);
     
     if (manualMode) {
         // Just show the manual mode controls - don't reset the game
-        // If this is the first time entering manual mode, initialize word index
-        if (!localStorage.getItem('manualWordIndex')) {
-            // Calculate current word index based on the current pickedWord
-            const currentIndex = listOfWords.indexOf(pickedWord);
-            manualWordIndex = currentIndex >= 0 ? currentIndex : 0;
-            localStorage.setItem('manualWordIndex', manualWordIndex.toString());
-        } else {
-            manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
+        // Get the manual wordlist
+        const manualWordList = window.manualListOfWords || [];
+        console.log('toggleManualMode - entering manual mode');
+        console.log('manualWordList:', manualWordList);
+        console.log('manualWordList length:', manualWordList.length);
+        console.log('First 3 words in manual list:', manualWordList.slice(0, 3));
+        console.log('mainListOfWords length:', window.mainListOfWords ? window.mainListOfWords.length : 'undefined');
+        
+        // Verify this is actually the manual list (should be ~15 words)
+        if (manualWordList.length > 100) {
+            console.error('ERROR: manualWordList appears to be the main list! Length:', manualWordList.length);
+            console.error('This means window.manualListOfWords was not set correctly');
         }
         
-        // Show manual mode controls and hide timer
-        if (manualControls) {
-            manualControls.style.display = 'flex';
-            console.log('Showing manual controls');
+        if (!localStorage.getItem('manualWordIndex') || manualWordList.length === 0) {
+            manualWordIndex = 0;
+            localStorage.setItem('manualWordIndex', '0');
+            // Update pickedWord to first word in manual list
+            if (manualWordList.length > 0 && manualWordList.length < 100) {
+                pickedWord = manualWordList[0];
+                numOfWordale = 0;
+                console.log('Setting pickedWord to first word in manual list:', pickedWord);
+            } else {
+                console.error('Manual wordlist is empty or incorrect! Length:', manualWordList.length);
+            }
+        } else {
+            manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
+            // Make sure index is valid
+            if (manualWordList.length > 0 && manualWordList.length < 100) {
+                if (manualWordIndex >= manualWordList.length) {
+                    manualWordIndex = 0;
+                    localStorage.setItem('manualWordIndex', '0');
+                }
+                // Update pickedWord to current word in manual list
+                pickedWord = manualWordList[manualWordIndex];
+                numOfWordale = manualWordIndex;
+                console.log('Setting pickedWord to word at index', manualWordIndex, ':', pickedWord);
+                console.log('Verifying word is in manual list:', manualWordList.includes(pickedWord));
+            } else {
+                console.error('Manual wordlist issue - length:', manualWordList.length, 'index:', manualWordIndex);
+            }
         }
+        
+        // Hide timer in manual mode
         if (timerLabel) {
             timerLabel.style.display = 'none';
         }
-        // Make sure notify2 is visible and has proper height
-        if (notify2) {
-            notify2.style.visibility = 'visible';
-            notify2.style.height = 'auto';
-            notify2.style.overflow = 'visible';
-            console.log('Showing notify2');
-        }
+        // Update mode indicator
+        const modeIndicator = document.getElementById('modeIndicator');
+        if (modeIndicator) modeIndicator.textContent = 'M';
     } else {
-        // Just hide the manual mode controls - don't reset the game
-        if (manualControls) {
-            manualControls.style.display = 'none';
-            console.log('Hiding manual controls');
-        }
+        // Show timer when exiting manual mode
         if (timerLabel) {
             timerLabel.style.display = 'flex';
         }
+        // Update mode indicator
+        const modeIndicator = document.getElementById('modeIndicator');
+        if (modeIndicator) modeIndicator.textContent = 'A';
         // Keep manualWordIndex in localStorage in case user switches back
     }
 }
@@ -872,17 +922,62 @@ window.manualModeInit = function() {
         answersColors = [];
         answersLetters = [];
         
-        // Make sure pickedWord is set correctly
-        if (manualWordIndex >= 0 && manualWordIndex < listOfWords.length) {
-            pickedWord = listOfWords[manualWordIndex];
+        // Make sure pickedWord is set correctly from manual wordlist
+        const manualWordList = window.manualListOfWords || [];
+        if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
+            pickedWord = manualWordList[manualWordIndex];
             numOfWordale = manualWordIndex;
+            console.log('manualModeInit - set pickedWord to:', pickedWord, 'from manual list');
+        } else {
+            console.error('manualModeInit - manual wordlist issue, length:', manualWordList.length, 'index:', manualWordIndex);
         }
     }
 };
 
 function showPasswordPrompt() {
     const password = prompt("הזן סיסמה בת 4 ספרות כדי לעבור למילה הבאה:");
-    if (password === MANUAL_MODE_PASSWORD) {
+    
+    if (password === "9090") {
+        // Switch back to automatic mode
+        manualMode = false;
+        localStorage.setItem('manualMode', 'false');
+        
+        // Reset to daily word
+        pickedWord = pickWord();
+        
+        // Show timer
+        const timerLabel = document.getElementById('timerWithLabel');
+        if (timerLabel) timerLabel.style.display = 'flex';
+        
+        // Update mode indicator
+        const modeIndicator = document.getElementById('modeIndicator');
+        if (modeIndicator) modeIndicator.textContent = 'A';
+        
+        // Reset game state
+        resetGameForNewWord();
+        
+        openNotification('חזרה למצב אוטומטי');
+    } else if (password === MANUAL_MODE_PASSWORD) {
+        // Ensure manual mode is enabled
+        if (!manualMode) {
+            manualMode = true;
+            localStorage.setItem('manualMode', 'true');
+            // Initialize manual mode if needed
+            const manualWordList = window.manualListOfWords || [];
+            if (!localStorage.getItem('manualWordIndex') && manualWordList.length > 0) {
+                manualWordIndex = 0;
+                localStorage.setItem('manualWordIndex', '0');
+                pickedWord = manualWordList[0];
+                numOfWordale = 0;
+            }
+            // Hide timer in manual mode
+            const timerLabel = document.getElementById('timerWithLabel');
+            if (timerLabel) timerLabel.style.display = 'none';
+            
+            // Update mode indicator
+            const modeIndicator = document.getElementById('modeIndicator');
+            if (modeIndicator) modeIndicator.textContent = 'M';
+        }
         moveToNextWord();
     } else if (password !== null) {
         openNotification('סיסמה שגויה');
@@ -892,11 +987,17 @@ function showPasswordPrompt() {
 function moveToNextWord() {
     if (!manualMode) return;
     
-    manualWordIndex++;
-    if (manualWordIndex >= listOfWords.length) {
-        openNotification('סיימת את כל המילים!');
-        manualWordIndex = listOfWords.length - 1;
+    const manualWordList = window.manualListOfWords || [];
+    if (manualWordList.length === 0) {
+        openNotification('רשימת המילים הידנית לא נטענה');
         return;
+    }
+    
+    manualWordIndex++;
+    // Cycle back to the first word when reaching the end
+    if (manualWordIndex >= manualWordList.length) {
+        manualWordIndex = 0;
+        openNotification('חזרה למילה הראשונה');
     }
     
     // Save the new word index
@@ -911,8 +1012,8 @@ function moveToNextWord() {
     answersColors = [];
     answersLetters = [];
     
-    // Set the new word
-    pickedWord = listOfWords[manualWordIndex];
+    // Set the new word from manual wordlist
+    pickedWord = manualWordList[manualWordIndex];
     numOfWordale = manualWordIndex;
     
     // Reset the UI (clear tiles, keyboard, etc.)
@@ -923,7 +1024,7 @@ function moveToNextWord() {
     localStorage.removeItem('answersColors');
     localStorage.removeItem('answersLetters');
     
-    openNotification(`מילה ${manualWordIndex + 1} מתוך ${listOfWords.length}`);
+    openNotification(`מילה ${manualWordIndex + 1} מתוך ${manualWordList.length}`);
 }
 
 //loadUserData();

@@ -148,16 +148,14 @@ console.log(countPlayersPerDay());
       // Initialize manual mode UI
       setTimeout(function() {
           const manualMode = localStorage.getItem('manualMode') === 'true';
+          const timerLabel = document.getElementById('timerWithLabel');
+          const modeIndicator = document.getElementById('modeIndicator');
           if (manualMode) {
-              const manualControls = document.getElementById('manualModeControls');
-              const timerLabel = document.getElementById('timerWithLabel');
-              if (manualControls) manualControls.style.display = 'flex';
               if (timerLabel) timerLabel.style.display = 'none';
+              if (modeIndicator) modeIndicator.textContent = 'M';
           } else {
-              const manualControls = document.getElementById('manualModeControls');
-              const timerLabel = document.getElementById('timerWithLabel');
-              if (manualControls) manualControls.style.display = 'none';
               if (timerLabel) timerLabel.style.display = 'flex';
+              if (modeIndicator) modeIndicator.textContent = 'A';
           }
       }, 100);
 
@@ -219,7 +217,7 @@ console.log(countPlayersPerDay());
           }
       </style>
       <div><button class="rules" onclick="openInstructions()">
-          <img src="question-mark.svg"  onclick="openInstructions()">
+          <span id="modeIndicator" style="font-family: 'Secular One'; font-size: clamp(0.5vw,13vw,40px); font-weight: bold; color: rgb(0, 112, 112);">?</span>
       </button></div>
       <div>
           <h1 class="title">וורדל׳ה</h1>
@@ -228,7 +226,7 @@ console.log(countPlayersPerDay());
           <img src="wordale-favicon-new.png">
       </div>
       <div>
-          <button onclick="toggleManualMode()" style="border: none; background-color: transparent; font-family: 'Secular One'; font-size: clamp(0.5vw,5vw,15px); cursor: pointer;">🎮 מצב ידני</button>
+          <button onclick="showPasswordPrompt()" style="border: none; background-color: transparent; font-family: 'Secular One'; font-size: clamp(0.5vw,5vw,15px); cursor: pointer;">➡️ מילה הבאה</button>
       </div>
   </div>
 </head>
@@ -249,10 +247,6 @@ console.log(countPlayersPerDay());
       </div>
       <button id="shareButton" onclick="shareResults()">⬆️ שיתוף תוצאות</button>
       <button id="statsOpenButton" onclick="openStats()">📊 סטטיסטיקה</button>
-      <div id="manualModeControls" style="display: none;">
-        <button id="nextWordButton" onclick="showPasswordPrompt()">➡️ מילה הבאה</button>
-        <button id="exitManualModeButton" onclick="toggleManualMode()">🚪 יציאה ממצב ידני</button>
-      </div>
     </div>
   <style>
   body {
@@ -318,34 +312,6 @@ overflow: hidden;
 text-overflow: ellipsis;
 }
 
-#manualModeControls {
-display: flex;
-gap: 4px;
-align-items: center;
-flex-shrink: 1;
-}
-
-#nextWordButton,
-#exitManualModeButton {
-background-color: transparent;
-color: white;
-border: none;
-padding: 4px 4px;
-border-radius: 10px;
-cursor: pointer;
-font-family: 'Secular One', sans-serif;
-font-size: inherit;
-white-space: nowrap;
-overflow: hidden;
-text-overflow: ellipsis;
-flex-shrink: 1;
-max-width: 33%;
-}
-
-#nextWordButton:hover,
-#exitManualModeButton:hover {
-background-color: rgba(255, 255, 255, 0.1);
-}
 
 #timerWithLabel {
 display: flex;
@@ -594,18 +560,6 @@ display: none;
       a{
           color:rgb(0, 112, 112);
           text-decoration: none;
-      }
-      #coffee {
-          margin: auto;
-              display: flex;
-              justify-content: space-evenly;
-              width: clamp(5vw,100vw,320px);
-              height: 50px;
-              font-family: 'Secular One';
-              overflow: hidden;
-
-              font-size:clamp(0.5vw,7vw,13px);
-
       }
   </style>
 <script>
@@ -886,10 +840,6 @@ if (event.target == modal) {
       <div>
       </div>
   </div><!-- end #keyboard -->
-  <a href="https://ko-fi.com/yairhasfari">
-  <div id="coffee">
-      ☕ אפשר להזמין אותי לקפה  
-  </div></a>
   <div id="statsModal" style="visibility: hidden;">
       <div id="statsContent">
         <button onclick="closeStats()" id="closeStats">✖</button>
@@ -899,6 +849,46 @@ if (event.target == modal) {
     </div>
   <script src="hebwords.js"></script>
   <script src="wordlist.js"></script>
+  <script>
+    // Save the main wordlist
+    window.mainListOfWords = listOfWords;
+    console.log('Main wordlist saved, length:', window.mainListOfWords.length);
+  </script>
+  <script src="wordlist-manual.js"></script>
+  <script>
+    // After loading wordlist-manual.js, listOfWords should now contain the manual list
+    // Save it before restoring the main list
+    console.log('After loading wordlist-manual.js:');
+    console.log('listOfWords length:', listOfWords ? listOfWords.length : 'undefined');
+    console.log('First word in listOfWords:', listOfWords ? listOfWords[0] : 'undefined');
+    console.log('Expected first word (שמיכה): שמיכה');
+    console.log('Match?', listOfWords && listOfWords[0] === 'שמיכה');
+    
+    if (listOfWords && listOfWords.length < 100 && listOfWords[0] === 'שמיכה') {
+      // This looks like the manual list (small, ~15 words, starts with שמיכה)
+      window.manualListOfWords = listOfWords.slice(); // Make a copy
+      console.log('✓ Manual wordlist saved correctly, length:', window.manualListOfWords.length);
+      console.log('✓ First word in manual list:', window.manualListOfWords[0]);
+      console.log('✓ All words in manual list:', window.manualListOfWords);
+    } else {
+      console.error('✗ ERROR: Manual wordlist not found or incorrect!');
+      console.error('listOfWords length:', listOfWords ? listOfWords.length : 'undefined');
+      console.error('First word:', listOfWords ? listOfWords[0] : 'undefined');
+      console.error('Expected first word: שמיכה');
+      // Try to manually create the manual wordlist as fallback
+      window.manualListOfWords = [
+        "שמיכה", "שבלול", "חיקוי", "השלמה", "טמטום",
+        "הקרבה", "טיעון", "שקדיה", "ריגול", "תרופה",
+        'צוללת', 'שבתאי', 'רוסיה', "קבינט"
+      ];
+      console.log('Created manual wordlist as fallback, length:', window.manualListOfWords.length);
+    }
+    
+    // Now restore the main wordlist
+    listOfWords = window.mainListOfWords;
+    console.log('Main wordlist restored, length:', listOfWords.length);
+    console.log('Verification - manualListOfWords still exists?', window.manualListOfWords ? 'Yes, length: ' + window.manualListOfWords.length : 'No');
+  </script>
   <script src="main.js"></script>
 
 </body>
