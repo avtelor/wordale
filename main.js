@@ -35,6 +35,11 @@ const MANUAL_MODE_PASSWORD = "6060";
 manualMode = localStorage.getItem('manualMode') === 'true';
 if (manualMode) {
     manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
+    // Make sure index is valid
+    if (manualWordIndex < 0 || manualWordIndex >= listOfWords.length) {
+        manualWordIndex = 0;
+        localStorage.setItem('manualWordIndex', '0');
+    }
     pickedWord = listOfWords[manualWordIndex];
     numOfWordale = manualWordIndex;
 } else {
@@ -667,29 +672,36 @@ localStorage.setItem('answersLetters', answersLetters)
 // }
 // loadUserData loads the data saved on localStorage and fills the tiles with older answers. this only happens if the day is today.
 function loadUserData() {
-//because localStorage only saves strings.
-let savedDateString = localStorage.getItem('userDate');
-let savedDate = new Date(savedDateString);
-let todayNoHours = today.setHours(0, 0, 0, 0);//in order to compare date only without time
-let savedDateCompare = savedDate.setHours(0, 0, 0, 0)//likewise
-//only if day has changed:
-if (todayNoHours === savedDateCompare) {
-    answersLetters = localStorage.getItem('answersLetters').split(",");
-    for (k = 0; k < answersLetters.length; k++) {
-        for (m = 0; m < answersLetters[k].length; m++) {
-            document.getElementById(`tile${k + 1}${m + 1}`).innerHTML = answersLetters[k][m];
+    // Skip loading if in manual mode (check both variable and localStorage)
+    const isManualMode = manualMode || localStorage.getItem('manualMode') === 'true';
+    if (isManualMode) {
+        console.log('loadUserData skipped - manual mode is active');
+        return;
+    }
+    //because localStorage only saves strings.
+    let savedDateString = localStorage.getItem('userDate');
+    if (!savedDateString) return;
+    let savedDate = new Date(savedDateString);
+    let todayNoHours = today.setHours(0, 0, 0, 0);//in order to compare date only without time
+    let savedDateCompare = savedDate.setHours(0, 0, 0, 0)//likewise
+    //only if day has changed:
+    if (todayNoHours === savedDateCompare) {
+        answersLetters = localStorage.getItem('answersLetters').split(",");
+        for (k = 0; k < answersLetters.length; k++) {
+            for (m = 0; m < answersLetters[k].length; m++) {
+                document.getElementById(`tile${k + 1}${m + 1}`).innerHTML = answersLetters[k][m];
+            }
+            currentRow = k + 1;
+            currentWord = answersLetters[k];
+            wordCount = k + 1;
+            rowCount = rowCount + 1;
+            
+            compareWords();
+            currentWord = '';
+
         }
-        currentRow = k + 1;
-        currentWord = answersLetters[k];
-        wordCount = k + 1;
-        rowCount = rowCount + 1;
-        
-        compareWords();
-        currentWord = '';
 
     }
-
-}
 }
 function compareLetters(letterA, letterB) {
 if (letterA === letterB | (letterA === "נ" && letterB === "ן") | (letterA === "צ" && letterB === "ץ") | (letterA === "פ" && letterB === "ף") | (letterA === "כ" && letterB === "ך") | (letterA === "מ" && letterB === "ם")) {
@@ -747,25 +759,52 @@ function toggleManualMode() {
     
     const manualControls = document.getElementById('manualModeControls');
     const timerLabel = document.getElementById('timerWithLabel');
+    const notify2 = document.getElementById('notify2');
+    
+    console.log('toggleManualMode called - manualMode:', manualMode);
+    console.log('manualControls:', manualControls, 'timerLabel:', timerLabel);
     
     if (manualMode) {
-        manualWordIndex = 0;
-        localStorage.setItem('manualWordIndex', '0');
-        resetGameForNewWord();
-        pickedWord = listOfWords[0];
-        numOfWordale = 0;
-        if (manualControls) manualControls.style.display = 'flex';
-        if (timerLabel) timerLabel.style.display = 'none';
+        // Just show the manual mode controls - don't reset the game
+        // If this is the first time entering manual mode, initialize word index
+        if (!localStorage.getItem('manualWordIndex')) {
+            // Calculate current word index based on the current pickedWord
+            const currentIndex = listOfWords.indexOf(pickedWord);
+            manualWordIndex = currentIndex >= 0 ? currentIndex : 0;
+            localStorage.setItem('manualWordIndex', manualWordIndex.toString());
+        } else {
+            manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
+        }
+        
+        // Show manual mode controls and hide timer
+        if (manualControls) {
+            manualControls.style.display = 'flex';
+            console.log('Showing manual controls');
+        }
+        if (timerLabel) {
+            timerLabel.style.display = 'none';
+        }
+        // Make sure notify2 is visible and has proper height
+        if (notify2) {
+            notify2.style.visibility = 'visible';
+            notify2.style.height = 'auto';
+            notify2.style.overflow = 'visible';
+            console.log('Showing notify2');
+        }
     } else {
-        localStorage.removeItem('manualWordIndex');
-        resetGameForNewWord();
-        pickedWord = pickWord();
-        if (manualControls) manualControls.style.display = 'none';
-        if (timerLabel) timerLabel.style.display = 'flex';
+        // Just hide the manual mode controls - don't reset the game
+        if (manualControls) {
+            manualControls.style.display = 'none';
+            console.log('Hiding manual controls');
+        }
+        if (timerLabel) {
+            timerLabel.style.display = 'flex';
+        }
+        // Keep manualWordIndex in localStorage in case user switches back
     }
 }
 
-function resetGameForNewWord() {
+window.resetGameForNewWord = function() {
     win = false;
     endOfGameToday = false;
     rowCount = 1;
@@ -774,15 +813,22 @@ function resetGameForNewWord() {
     answersColors = [];
     answersLetters = [];
     
-    // Clear all tiles
+    // Clear all tiles and rows
     for (let r = 1; r <= 6; r++) {
+        // Reset row color
+        const row = document.getElementById(`row${r}`);
+        if (row) {
+            row.style.color = ''; // Reset to default (black)
+        }
+        
+        // Clear all tiles in this row
         for (let c = 1; c <= 5; c++) {
             const tile = document.getElementById(`tile${r}${c}`);
             if (tile) {
                 tile.innerHTML = '';
                 tile.style.backgroundColor = '';
                 tile.style.border = "solid rgb(212, 212, 212)";
-                tile.style.color = '';
+                tile.style.color = ''; // Reset to default (black)
                 tile.setAttribute('data-animation', 'idle');
             }
         }
@@ -808,11 +854,31 @@ function resetGameForNewWord() {
         notify2.style.visibility = "hidden";
     }
     
-    // Clear localStorage for current game
+    // Clear localStorage for current game (but keep manual mode settings)
     localStorage.removeItem('userDate');
     localStorage.removeItem('answersColors');
     localStorage.removeItem('answersLetters');
-}
+};
+
+// Initialize manual mode - ensure all state is correct
+window.manualModeInit = function() {
+    if (manualMode) {
+        // Force reset all game state variables
+        win = false;
+        endOfGameToday = false;
+        rowCount = 1;
+        wordCount = 0;
+        currentWord = '';
+        answersColors = [];
+        answersLetters = [];
+        
+        // Make sure pickedWord is set correctly
+        if (manualWordIndex >= 0 && manualWordIndex < listOfWords.length) {
+            pickedWord = listOfWords[manualWordIndex];
+            numOfWordale = manualWordIndex;
+        }
+    }
+};
 
 function showPasswordPrompt() {
     const password = prompt("הזן סיסמה בת 4 ספרות כדי לעבור למילה הבאה:");
@@ -833,10 +899,30 @@ function moveToNextWord() {
         return;
     }
     
+    // Save the new word index
     localStorage.setItem('manualWordIndex', manualWordIndex.toString());
+    
+    // Reset all game state (like a new day)
+    win = false;
+    endOfGameToday = false;
+    rowCount = 1;
+    wordCount = 0;
+    currentWord = '';
+    answersColors = [];
+    answersLetters = [];
+    
+    // Set the new word
     pickedWord = listOfWords[manualWordIndex];
     numOfWordale = manualWordIndex;
+    
+    // Reset the UI (clear tiles, keyboard, etc.)
     resetGameForNewWord();
+    
+    // Clear any saved game data for the previous word
+    localStorage.removeItem('userDate');
+    localStorage.removeItem('answersColors');
+    localStorage.removeItem('answersLetters');
+    
     openNotification(`מילה ${manualWordIndex + 1} מתוך ${listOfWords.length}`);
 }
 

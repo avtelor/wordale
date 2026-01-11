@@ -139,7 +139,11 @@ console.log(countPlayersPerDay());
 
       /*LOAD LOAD LOAD LOAD LOAD LOAD LOAD IMPORTANT*/
   
-      window.loadUserData();
+      // Check manual mode first and skip loadUserData if in manual mode
+      const isManualMode = localStorage.getItem('manualMode') === 'true';
+      if (!isManualMode && window.loadUserData) {
+          window.loadUserData();
+      }
       
       // Initialize manual mode UI
       setTimeout(function() {
