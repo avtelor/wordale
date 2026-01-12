@@ -65,39 +65,54 @@ if (manualMode) {
                 numOfWordale = manualWordIndex;
                 console.log('Manual mode - using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
                 
+                // Load saved data for this word after setting pickedWord
+                setTimeout(function() {
+                    loadUserData();
+                }, 100);
+                
                 // Set up listener for shared word index changes (after initial load)
                 if (window.watchSharedManualWordIndex) {
                     let isInitialLoad = true;
-                    window.watchSharedManualWordIndex(function(newIndex) {
-                        if (isInitialLoad) {
-                            // Skip the first callback (initial load)
-                            isInitialLoad = false;
-                            return;
-                        }
-                        if (newIndex !== manualWordIndex) {
-                            console.log('Shared word index changed from', manualWordIndex, 'to', newIndex);
-                            manualWordIndex = newIndex;
-                            const manualWordList = window.manualListOfWords || [];
-                            if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
-                                pickedWord = manualWordList[manualWordIndex];
-                                numOfWordale = manualWordIndex;
-                                
-                                // Reset game state and load new word's data
-                                win = false;
-                                endOfGameToday = false;
-                                rowCount = 1;
-                                wordCount = 0;
-                                currentWord = '';
-                                answersColors = [];
-                                answersLetters = [];
-                                
-                                resetGameForNewWord();
-                                loadUserData();
-                                
-                                openNotification(`עברת למילה ${manualWordIndex + 1} מתוך ${manualWordList.length}`);
+                    let lastKnownIndex = manualWordIndex;
+                    
+                    // Wait a bit before setting up listener to avoid initial load trigger
+                    setTimeout(function() {
+                        window.watchSharedManualWordIndex(function(newIndex) {
+                            if (isInitialLoad) {
+                                // Skip the first callback (initial load) and sync the index
+                                isInitialLoad = false;
+                                lastKnownIndex = newIndex;
+                                return;
                             }
-                        }
-                    });
+                            
+                            // Only react if the index actually changed
+                            if (newIndex !== lastKnownIndex && newIndex !== manualWordIndex) {
+                                console.log('Shared word index changed from', lastKnownIndex, 'to', newIndex);
+                                lastKnownIndex = newIndex;
+                                manualWordIndex = newIndex;
+                                const manualWordList = window.manualListOfWords || [];
+                                
+                                if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
+                                    pickedWord = manualWordList[manualWordIndex];
+                                    numOfWordale = manualWordIndex;
+                                    
+                                    // Reset game state and load new word's data
+                                    win = false;
+                                    endOfGameToday = false;
+                                    rowCount = 1;
+                                    wordCount = 0;
+                                    currentWord = '';
+                                    answersColors = [];
+                                    answersLetters = [];
+                                    
+                                    resetGameForNewWord();
+                                    loadUserData();
+                                    
+                                    openNotification(`עברת למילה ${manualWordIndex + 1} מתוך ${manualWordList.length}`);
+                                }
+                            }
+                        });
+                    }, 500); // Small delay to ensure initial load is complete
                 }
             } else {
                 // manualWordList is wrong (probably pointing to main list) or not loaded
@@ -785,18 +800,55 @@ function loadUserData() {
         if (!savedLetters || !savedColors) return;
         answersLetters = JSON.parse(savedLetters);
         answersColors = JSON.parse(savedColors);
+        
+        // Restore the tiles and colors without calling compareWords
         for (k = 0; k < answersLetters.length; k++) {
+            const rowNum = k + 1;
             for (m = 0; m < answersLetters[k].length; m++) {
-                document.getElementById(`tile${k + 1}${m + 1}`).innerHTML = answersLetters[k][m];
+                const tile = document.getElementById(`tile${rowNum}${m + 1}`);
+                if (tile) {
+                    tile.innerHTML = answersLetters[k][m];
+                    // Restore tile colors from answersColors
+                    if (answersColors[k] && answersColors[k][m]) {
+                        const colorEmoji = answersColors[k][m];
+                        if (colorEmoji === '🟩') {
+                            tile.style.backgroundColor = "rgb(98, 159, 91)";
+                            tile.style.border = "solid rgb(98, 159, 91)";
+                            tile.style.color = "white";
+                        } else if (colorEmoji === '🟨') {
+                            tile.style.backgroundColor = "rgb(194, 170, 82)";
+                            tile.style.border = "solid rgb(194, 170, 82)";
+                            tile.style.color = "white";
+                        } else if (colorEmoji === '⬜') {
+                            tile.style.backgroundColor = "rgb(109, 113 ,115)";
+                            tile.style.border = "solid rgb(109, 113 ,115)";
+                            tile.style.color = "white";
+                        }
+                    }
+                }
             }
-            currentRow = k + 1;
-            currentWord = answersLetters[k];
-            wordCount = k + 1;
-            rowCount = rowCount + 1;
-            
-            compareWords();
-            currentWord = '';
-
+            // Update keyboard colors
+            for (m = 0; m < answersLetters[k].length; m++) {
+                const letter = answersLetters[k][m];
+                if (answersColors[k] && answersColors[k][m]) {
+                    const colorEmoji = answersColors[k][m];
+                    let color = "rgb(109, 113 ,115)";
+                    if (colorEmoji === '🟩') color = "rgb(98, 159, 91)";
+                    else if (colorEmoji === '🟨') color = "rgb(194, 170, 82)";
+                    paintFinalLetter(letter, color);
+                }
+            }
+        }
+        
+        // Update game state variables
+        wordCount = answersLetters.length;
+        rowCount = answersLetters.length + 1;
+        currentWord = '';
+        
+        // Set row color to white for completed rows
+        for (k = 0; k < answersLetters.length; k++) {
+            const row = document.getElementById(`row${k + 1}`);
+            if (row) row.style.color = "white";
         }
         return;
     }

@@ -30,7 +30,7 @@
       const firebaseConfig = {
         apiKey: "AIzaSyBifPmI9SvYUmWFZDQ18Twje6NsBjKbdWQ",
         authDomain: "wordle-e76d9.firebaseapp.com",
-        databaseURL: "hhttps://wordle-e76d9-default-rtdb.europe-west1.firebasedatabase.app/",
+        databaseURL: "https://wordle-e76d9-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "wordle-e76d9",
         storageBucket: "wordle-e76d9.firebasestorage.app",
         messagingSenderId: "408477836472",
@@ -65,13 +65,19 @@
       };
       
       window.watchSharedManualWordIndex = function(callback) {
-        const wordIndexRef = ref(db, 'manualMode/currentWordIndex');
-        onValue(wordIndexRef, (snapshot) => {
-          if (snapshot.exists()) {
-            const newIndex = parseInt(snapshot.val()) || 0;
-            callback(newIndex);
-          }
-        });
+        try {
+          const wordIndexRef = ref(db, 'manualMode/currentWordIndex');
+          onValue(wordIndexRef, (snapshot) => {
+            if (snapshot.exists()) {
+              const newIndex = parseInt(snapshot.val()) || 0;
+              callback(newIndex);
+            }
+          }, (error) => {
+            console.error('Error watching shared word index:', error);
+          });
+        } catch (error) {
+          console.error('Error setting up word index watcher:', error);
+        }
       };
       
 window.sendResultToFirebase = function (guessCount) {
