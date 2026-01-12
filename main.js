@@ -34,31 +34,96 @@ const MANUAL_MODE_PASSWORD = "6060";
 // Check if manual mode is enabled in localStorage
 manualMode = localStorage.getItem('manualMode') === 'true';
 if (manualMode) {
-    manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
-    // Get the manual wordlist
+    // Temporarily set pickedWord to avoid errors while waiting for Firebase
     let manualWordList = window.manualListOfWords;
-    console.log('Initialization - manualWordList:', manualWordList);
-    console.log('Initialization - manualWordList length:', manualWordList ? manualWordList.length : 'undefined');
-    console.log('Initialization - mainListOfWords length:', window.mainListOfWords ? window.mainListOfWords.length : 'undefined');
-    
-    // Check if manualWordList is actually the manual list (should be ~15 words, not 1462)
     if (manualWordList && manualWordList.length > 0 && manualWordList.length < 100) {
-        // This looks like the manual list (small number of words)
-        if (manualWordIndex < 0 || manualWordIndex >= manualWordList.length) {
-            manualWordIndex = 0;
-            localStorage.setItem('manualWordIndex', '0');
-        }
-        pickedWord = manualWordList[manualWordIndex];
-        numOfWordale = manualWordIndex;
-        console.log('Manual mode - using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
+        pickedWord = manualWordList[0]; // Temporary, will be updated from Firebase
     } else {
-        // manualWordList is wrong (probably pointing to main list) or not loaded
-        console.error('Manual wordlist not found or incorrect! manualWordList length:', manualWordList ? manualWordList.length : 'undefined');
-        // Reset to first word and use main list as fallback
-        manualWordIndex = 0;
-        localStorage.setItem('manualWordIndex', '0');
-        pickedWord = pickWord();
-        console.log('Manual mode - falling back to main list, word:', pickedWord);
+        pickedWord = pickWord(); // Fallback
+    }
+    
+    // Get the shared word index from Firebase (all users share the same word)
+    if (window.getSharedManualWordIndex) {
+        window.getSharedManualWordIndex(function(sharedIndex) {
+            manualWordIndex = sharedIndex;
+            // Get the manual wordlist
+            let manualWordList = window.manualListOfWords;
+            console.log('Initialization - manualWordList:', manualWordList);
+            console.log('Initialization - manualWordList length:', manualWordList ? manualWordList.length : 'undefined');
+            console.log('Initialization - Shared word index from Firebase:', sharedIndex);
+            
+            // Check if manualWordList is actually the manual list (should be small, not 1462)
+            if (manualWordList && manualWordList.length > 0 && manualWordList.length < 100) {
+                // Make sure index is valid
+                if (manualWordIndex < 0 || manualWordIndex >= manualWordList.length) {
+                    manualWordIndex = 0;
+                    if (window.setSharedManualWordIndex) {
+                        window.setSharedManualWordIndex(0);
+                    }
+                }
+                pickedWord = manualWordList[manualWordIndex];
+                numOfWordale = manualWordIndex;
+                console.log('Manual mode - using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
+                
+                // Set up listener for shared word index changes (after initial load)
+                if (window.watchSharedManualWordIndex) {
+                    let isInitialLoad = true;
+                    window.watchSharedManualWordIndex(function(newIndex) {
+                        if (isInitialLoad) {
+                            // Skip the first callback (initial load)
+                            isInitialLoad = false;
+                            return;
+                        }
+                        if (newIndex !== manualWordIndex) {
+                            console.log('Shared word index changed from', manualWordIndex, 'to', newIndex);
+                            manualWordIndex = newIndex;
+                            const manualWordList = window.manualListOfWords || [];
+                            if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
+                                pickedWord = manualWordList[manualWordIndex];
+                                numOfWordale = manualWordIndex;
+                                
+                                // Reset game state and load new word's data
+                                win = false;
+                                endOfGameToday = false;
+                                rowCount = 1;
+                                wordCount = 0;
+                                currentWord = '';
+                                answersColors = [];
+                                answersLetters = [];
+                                
+                                resetGameForNewWord();
+                                loadUserData();
+                                
+                                openNotification(`עברת למילה ${manualWordIndex + 1} מתוך ${manualWordList.length}`);
+                            }
+                        }
+                    });
+                }
+            } else {
+                // manualWordList is wrong (probably pointing to main list) or not loaded
+                console.error('Manual wordlist not found or incorrect! manualWordList length:', manualWordList ? manualWordList.length : 'undefined');
+                // Reset to first word and use main list as fallback
+                manualWordIndex = 0;
+                if (window.setSharedManualWordIndex) {
+                    window.setSharedManualWordIndex(0);
+                }
+                pickedWord = pickWord();
+                console.log('Manual mode - falling back to main list, word:', pickedWord);
+            }
+        });
+    } else {
+        // Fallback if Firebase functions not available
+        manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
+        let manualWordList = window.manualListOfWords;
+        if (manualWordList && manualWordList.length > 0 && manualWordList.length < 100) {
+            if (manualWordIndex < 0 || manualWordIndex >= manualWordList.length) {
+                manualWordIndex = 0;
+            }
+            pickedWord = manualWordList[manualWordIndex];
+            numOfWordale = manualWordIndex;
+        } else {
+            pickedWord = pickWord();
+        }
     }
 } else {
     pickedWord = pickWord();
@@ -688,11 +753,13 @@ else {
 function saveUserData() {
 //update statistics:
 //updateStatistics();
+// In manual mode, save data per word index so each word has its own progress
+const storageKey = manualMode ? `manual_${manualWordIndex}` : 'auto';
 //saves the date the user is currently on
-localStorage.setItem('userDate', today);
-//saves the answers arrays of today
-localStorage.setItem('answersColors', answersColors);
-localStorage.setItem('answersLetters', answersLetters)
+localStorage.setItem(`userDate_${storageKey}`, today.toString());
+//saves the answers arrays of today (save as JSON for proper array storage)
+localStorage.setItem(`answersColors_${storageKey}`, JSON.stringify(answersColors));
+localStorage.setItem(`answersLetters_${storageKey}`, JSON.stringify(answersLetters));
 
 }
 // function saveUserDataEnd (){
@@ -704,18 +771,49 @@ function loadUserData() {
     // Skip loading if in manual mode (check both variable and localStorage)
     const isManualMode = manualMode || localStorage.getItem('manualMode') === 'true';
     if (isManualMode) {
-        console.log('loadUserData skipped - manual mode is active');
+        // In manual mode, load data for the current word index
+        const storageKey = `manual_${manualWordIndex}`;
+        let savedDateString = localStorage.getItem(`userDate_${storageKey}`);
+        if (!savedDateString) {
+            console.log('loadUserData skipped - no saved data for manual word', manualWordIndex);
+            return;
+        }
+        let savedDate = new Date(savedDateString);
+        // In manual mode, always load the saved data for this word (don't check date)
+        const savedLetters = localStorage.getItem(`answersLetters_${storageKey}`);
+        const savedColors = localStorage.getItem(`answersColors_${storageKey}`);
+        if (!savedLetters || !savedColors) return;
+        answersLetters = JSON.parse(savedLetters);
+        answersColors = JSON.parse(savedColors);
+        for (k = 0; k < answersLetters.length; k++) {
+            for (m = 0; m < answersLetters[k].length; m++) {
+                document.getElementById(`tile${k + 1}${m + 1}`).innerHTML = answersLetters[k][m];
+            }
+            currentRow = k + 1;
+            currentWord = answersLetters[k];
+            wordCount = k + 1;
+            rowCount = rowCount + 1;
+            
+            compareWords();
+            currentWord = '';
+
+        }
         return;
     }
+    // Auto mode - use old behavior
     //because localStorage only saves strings.
-    let savedDateString = localStorage.getItem('userDate');
+    let savedDateString = localStorage.getItem('userDate_auto');
     if (!savedDateString) return;
     let savedDate = new Date(savedDateString);
     let todayNoHours = today.setHours(0, 0, 0, 0);//in order to compare date only without time
     let savedDateCompare = savedDate.setHours(0, 0, 0, 0)//likewise
     //only if day has changed:
     if (todayNoHours === savedDateCompare) {
-        answersLetters = localStorage.getItem('answersLetters').split(",");
+        const savedLetters = localStorage.getItem('answersLetters_auto');
+        const savedColors = localStorage.getItem('answersColors_auto');
+        if (!savedLetters || !savedColors) return;
+        answersLetters = JSON.parse(savedLetters);
+        answersColors = JSON.parse(savedColors);
         for (k = 0; k < answersLetters.length; k++) {
             for (m = 0; m < answersLetters[k].length; m++) {
                 document.getElementById(`tile${k + 1}${m + 1}`).innerHTML = answersLetters[k][m];
@@ -904,10 +1002,8 @@ window.resetGameForNewWord = function() {
         notify2.style.visibility = "hidden";
     }
     
-    // Clear localStorage for current game (but keep manual mode settings)
-    localStorage.removeItem('userDate');
-    localStorage.removeItem('answersColors');
-    localStorage.removeItem('answersLetters');
+    // Don't clear localStorage - each word keeps its own progress
+    // The storage keys are now word-specific (manual_0, manual_1, etc.)
 };
 
 // Initialize manual mode - ensure all state is correct
@@ -993,38 +1089,51 @@ function moveToNextWord() {
         return;
     }
     
-    manualWordIndex++;
+    let newIndex = manualWordIndex + 1;
     // Cycle back to the first word when reaching the end
-    if (manualWordIndex >= manualWordList.length) {
-        manualWordIndex = 0;
-        openNotification('חזרה למילה הראשונה');
+    if (newIndex >= manualWordList.length) {
+        newIndex = 0;
     }
     
-    // Save the new word index
-    localStorage.setItem('manualWordIndex', manualWordIndex.toString());
-    
-    // Reset all game state (like a new day)
-    win = false;
-    endOfGameToday = false;
-    rowCount = 1;
-    wordCount = 0;
-    currentWord = '';
-    answersColors = [];
-    answersLetters = [];
-    
-    // Set the new word from manual wordlist
-    pickedWord = manualWordList[manualWordIndex];
-    numOfWordale = manualWordIndex;
-    
-    // Reset the UI (clear tiles, keyboard, etc.)
-    resetGameForNewWord();
-    
-    // Clear any saved game data for the previous word
-    localStorage.removeItem('userDate');
-    localStorage.removeItem('answersColors');
-    localStorage.removeItem('answersLetters');
-    
-    openNotification(`מילה ${manualWordIndex + 1} מתוך ${manualWordList.length}`);
+    // Update the shared word index in Firebase (this will trigger updates for all users)
+    if (window.setSharedManualWordIndex) {
+        window.setSharedManualWordIndex(newIndex);
+        // The listener will handle updating the local state when Firebase updates
+        // But we also update locally immediately for this user
+        manualWordIndex = newIndex;
+        pickedWord = manualWordList[manualWordIndex];
+        numOfWordale = manualWordIndex;
+        
+        // Reset all game state (like a new day)
+        win = false;
+        endOfGameToday = false;
+        rowCount = 1;
+        wordCount = 0;
+        currentWord = '';
+        answersColors = [];
+        answersLetters = [];
+        
+        // Reset the UI (clear tiles, keyboard, etc.)
+        resetGameForNewWord();
+        
+        // Load saved data for this word if it exists
+        loadUserData();
+        
+        if (newIndex === 0) {
+            openNotification('חזרה למילה הראשונה');
+        } else {
+            openNotification(`מילה ${manualWordIndex + 1} מתוך ${manualWordList.length}`);
+        }
+    } else {
+        // Fallback if Firebase not available
+        manualWordIndex = newIndex;
+        localStorage.setItem('manualWordIndex', manualWordIndex.toString());
+        pickedWord = manualWordList[manualWordIndex];
+        numOfWordale = manualWordIndex;
+        resetGameForNewWord();
+        loadUserData();
+        openNotification(`מילה ${manualWordIndex + 1} מתוך ${manualWordList.length}`);
+    }
 }
 
 //loadUserData();

@@ -24,19 +24,19 @@
   <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
-      import { getDatabase, ref, push, get, child } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+      import { getDatabase, ref, push, get, child, set, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
       // import { getDatabase, ref, get, child } from "firebase/database";
 
       const firebaseConfig = {
-        apiKey: "AIzaSyAy6_2Vw-1BXws91miKddp2U-7MmmwsTjo",
-        authDomain: "yairwordale.firebaseapp.com",
-        databaseURL: "https://yairwordale-default-rtdb.firebaseio.com",
-        projectId: "yairwordale",
-        storageBucket: "yairwordale.appspot.com",
-        messagingSenderId: "1081840024897",
-        appId: "1:1081840024897:web:889f9b2e360e8a1b98b5c0",
-        measurementId: "G-527F2BTW60"
-      };
+        apiKey: "AIzaSyBifPmI9SvYUmWFZDQ18Twje6NsBjKbdWQ",
+        authDomain: "wordle-e76d9.firebaseapp.com",
+        databaseURL: "hhttps://wordle-e76d9-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "wordle-e76d9",
+        storageBucket: "wordle-e76d9.firebasestorage.app",
+        messagingSenderId: "408477836472",
+        appId: "1:408477836472:web:1b3a28a5d2cc4b307a404d",
+        measurementId: "G-NCN7FEP1EC"
+      };  
     
       // אתחול Firebase
       const app = initializeApp(firebaseConfig);
@@ -44,6 +44,36 @@
       const db = getDatabase(app);
     
       // זמינות גלובלית לפונקציות דרך window (כדי שתוכל לקרוא להן מתוך main.js)
+      
+      // Functions for shared manual word index
+      window.getSharedManualWordIndex = function(callback) {
+        get(child(ref(db), 'manualMode/currentWordIndex')).then((snapshot) => {
+          if (snapshot.exists()) {
+            callback(parseInt(snapshot.val()) || 0);
+          } else {
+            // Initialize to 0 if doesn't exist
+            callback(0);
+          }
+        }).catch((error) => {
+          console.error('Error getting shared word index:', error);
+          callback(0);
+        });
+      };
+      
+      window.setSharedManualWordIndex = function(index) {
+        set(ref(db, 'manualMode/currentWordIndex'), index);
+      };
+      
+      window.watchSharedManualWordIndex = function(callback) {
+        const wordIndexRef = ref(db, 'manualMode/currentWordIndex');
+        onValue(wordIndexRef, (snapshot) => {
+          if (snapshot.exists()) {
+            const newIndex = parseInt(snapshot.val()) || 0;
+            callback(newIndex);
+          }
+        });
+      };
+      
 window.sendResultToFirebase = function (guessCount) {
 console.log("inFirebase " + guessCount);
 
@@ -139,9 +169,9 @@ console.log(countPlayersPerDay());
 
       /*LOAD LOAD LOAD LOAD LOAD LOAD LOAD IMPORTANT*/
   
-      // Check manual mode first and skip loadUserData if in manual mode
+      // Load user data (works for both manual and auto mode now)
       const isManualMode = localStorage.getItem('manualMode') === 'true';
-      if (!isManualMode && window.loadUserData) {
+      if (window.loadUserData) {
           window.loadUserData();
       }
       
