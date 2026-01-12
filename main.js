@@ -70,45 +70,48 @@ if (manualMode) {
                 numOfWordale = manualWordIndex;
                 console.log('Manual mode - using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
                 
-                // Load saved data for this word after setting pickedWord
+                // Load saved data for this word after setting pickedWord (only if no current input)
                 setTimeout(function() {
-                    loadUserData();
-                }, 100);
+                    // Only load if user is not currently typing
+                    if (!currentWord || currentWord.length === 0) {
+                        loadUserData();
+                    }
+                }, 200);
                 
                 // Set up listener for shared word index changes (after initial load)
                 if (window.watchSharedManualWordIndex) {
-                    let isInitialLoad = true;
                     let lastKnownIndex = manualWordIndex;
                     let listenerSetup = false;
+                    let initialLoadComplete = false;
                     
-                    // Wait a bit before setting up listener to avoid initial load trigger
+                    // Mark initial load as complete after a delay
                     setTimeout(function() {
-                        if (listenerSetup) return; // Prevent duplicate listeners
+                        initialLoadComplete = true;
+                    }, 2000);
+                    
+                    // Wait before setting up listener to avoid initial load trigger
+                    setTimeout(function() {
+                        if (listenerSetup) {
+                            console.log('Listener already set up, skipping');
+                            return; // Prevent duplicate listeners
+                        }
                         listenerSetup = true;
+                        console.log('Setting up Firebase listener, current index:', manualWordIndex);
                         
                         window.watchSharedManualWordIndex(function(newIndex) {
-                            if (isInitialLoad) {
-                                // Skip the first callback (initial load) and sync the index
-                                isInitialLoad = false;
+                            // Ignore if initial load not complete
+                            if (!initialLoadComplete) {
+                                console.log('Ignoring listener callback - initial load not complete, index:', newIndex);
                                 lastKnownIndex = newIndex;
-                                // Make sure we're synced
-                                if (newIndex !== manualWordIndex) {
-                                    manualWordIndex = newIndex;
-                                    const manualWordList = window.manualListOfWords || [];
-                                    if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
-                                        pickedWord = manualWordList[manualWordIndex];
-                                        numOfWordale = manualWordIndex;
-                                    }
-                                }
                                 return;
                             }
                             
-                            // Only react if the index actually changed AND user is not currently typing
+                            // Only react if the index actually changed
                             if (newIndex !== lastKnownIndex && newIndex !== manualWordIndex) {
-                                // Don't reset if user is actively typing
-                                if (currentWord && currentWord.length > 0) {
-                                    console.log('Word index changed but user is typing - will sync after they finish');
-                                    // Store that we need to sync later
+                                // Don't reset if user is actively typing or has unsaved progress
+                                if ((currentWord && currentWord.length > 0) || (wordCount > 0 && !endOfGameToday)) {
+                                    console.log('Word index changed but user has active game - index:', newIndex, 'currentWord:', currentWord, 'wordCount:', wordCount);
+                                    // Update lastKnownIndex but don't reset yet
                                     lastKnownIndex = newIndex;
                                     return;
                                 }
@@ -132,13 +135,20 @@ if (manualMode) {
                                     answersLetters = [];
                                     
                                     resetGameForNewWord();
-                                    loadUserData();
+                                    
+                                    // Load saved data after a small delay
+                                    setTimeout(function() {
+                                        loadUserData();
+                                    }, 100);
                                     
                                     openNotification(`עברת למילה ${manualWordIndex + 1} מתוך ${manualWordList.length}`);
                                 }
+                            } else {
+                                // Update lastKnownIndex even if no change, to keep in sync
+                                lastKnownIndex = newIndex;
                             }
                         });
-                    }, 1000); // Longer delay to ensure initial load is complete
+                    }, 2000); // Wait 2 seconds to ensure initial load is complete
                 }
             } else {
                 // manualWordList is wrong (probably pointing to main list) or not loaded
@@ -836,12 +846,29 @@ function loadUserData() {
         answersLetters = JSON.parse(savedLetters);
         answersColors = JSON.parse(savedColors);
         
+        // Don't restore if user is currently typing in the current row
+        const currentRowHasInput = currentWord && currentWord.length > 0;
+        if (currentRowHasInput && rowCount === answersLetters.length + 1) {
+            console.log('loadUserData skipped - user is typing in current row');
+            return;
+        }
+        
         // Restore the tiles and colors without calling compareWords
         for (k = 0; k < answersLetters.length; k++) {
             const rowNum = k + 1;
+            // Skip restoring the current row if user is typing
+            if (rowNum === rowCount && currentRowHasInput) {
+                continue;
+            }
+            
             for (m = 0; m < answersLetters[k].length; m++) {
                 const tile = document.getElementById(`tile${rowNum}${m + 1}`);
                 if (tile) {
+                    // Don't overwrite if tile already has content and it's the current row
+                    if (rowNum === rowCount && tile.innerHTML && currentRowHasInput) {
+                        continue;
+                    }
+                    
                     tile.innerHTML = answersLetters[k][m];
                     // Restore tile colors from answersColors
                     if (answersColors[k] && answersColors[k][m]) {
@@ -875,10 +902,17 @@ function loadUserData() {
             }
         }
         
-        // Update game state variables
-        wordCount = answersLetters.length;
-        rowCount = answersLetters.length + 1;
-        currentWord = '';
+        // Update game state variables (but don't overwrite currentWord if user is typing)
+        if (!currentRowHasInput) {
+            wordCount = answersLetters.length;
+            rowCount = answersLetters.length + 1;
+            currentWord = '';
+        } else {
+            // Only update wordCount if it's less than what we're restoring
+            if (answersLetters.length > wordCount) {
+                wordCount = answersLetters.length;
+            }
+        }
         
         // Set row color to white for completed rows
         for (k = 0; k < answersLetters.length; k++) {

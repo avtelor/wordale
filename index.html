@@ -73,9 +73,16 @@
       window.watchSharedManualWordIndex = function(callback) {
         try {
           const wordIndexRef = ref(db, 'manualMode/currentWordIndex');
+          let isFirstCall = true;
           onValue(wordIndexRef, (snapshot) => {
             if (snapshot.exists()) {
               const newIndex = parseInt(snapshot.val()) || 0;
+              // Skip the first call (initial setup) - it will be handled by getSharedManualWordIndex
+              if (isFirstCall) {
+                isFirstCall = false;
+                console.log('Firebase listener set up, initial value:', newIndex);
+                return;
+              }
               callback(newIndex);
             }
           }, (error) => {
