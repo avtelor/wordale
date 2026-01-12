@@ -270,7 +270,7 @@ console.log(countPlayersPerDay());
           <img src="wordale-favicon-new.png">
       </div>
       <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <button onclick="showPasswordPrompt()" style="border: none; background-color: transparent; font-family: 'Secular One'; font-size: clamp(0.5vw,5vw,15px); cursor: pointer;">מילה הבאה</button>
+          <button onclick="showPasswordPrompt()" onkeydown="if(event.key==='Enter'){event.preventDefault(); event.stopPropagation(); return false;}" style="border: none; background-color: transparent; font-family: 'Secular One'; font-size: clamp(0.5vw,5vw,15px); cursor: pointer;" tabindex="-1" onfocus="this.blur()">מילה הבאה</button>
           <span id="modeIndicator" style="font-family: 'Secular One'; font-size: clamp(8px, 2vw, 12px); font-weight: bold; color: rgb(0, 112, 112);">?</span>
       </div>
   </div>

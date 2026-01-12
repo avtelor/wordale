@@ -1236,6 +1236,18 @@ const suffixLetterToMiddleLetter = {
 window.addEventListener('keydown', function (e) {
 
 if (e.key === 'Enter') {
+    // Don't trigger sendWord if Enter is pressed on a button
+    if (e.target.tagName === 'BUTTON' || document.activeElement.tagName === 'BUTTON') {
+        e.preventDefault();
+        e.stopPropagation();
+        return; // Don't trigger anything
+    }
+    // Don't trigger sendWord if we're in an input field (like password prompt)
+    if (e.target.tagName === 'INPUT' || document.activeElement.tagName === 'INPUT') {
+        return;
+    }
+    // Otherwise, send the word
+    e.preventDefault();
     sendWord();
 }
 if (e.key === 'Backspace') {
