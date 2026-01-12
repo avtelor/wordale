@@ -30,6 +30,8 @@ let today = new Date();
 let manualMode = false;
 let manualWordIndex = 0;
 const MANUAL_MODE_PASSWORD = "6060";
+// Global flag to prevent resets during active gameplay
+window.preventResets = false;
 //word index is the numOfWordale calculated later on
 // Check if manual mode is enabled in localStorage
 manualMode = localStorage.getItem('manualMode') === 'true';
@@ -80,14 +82,18 @@ if (manualMode) {
                 
                 // Set up listener for shared word index changes (after initial load)
                 if (window.watchSharedManualWordIndex) {
-                    let lastKnownIndex = manualWordIndex;
+                    let lastKnownIndex = manualWordIndex; // Initialize with current index
                     let listenerSetup = false;
                     let initialLoadComplete = false;
+                    let isResetting = false; // Flag to prevent multiple simultaneous resets
+                    
+                    console.log('Preparing listener setup - initial manualWordIndex:', manualWordIndex, 'pickedWord:', pickedWord);
                     
                     // Mark initial load as complete after a delay
                     setTimeout(function() {
                         initialLoadComplete = true;
-                    }, 2000);
+                        console.log('Initial load complete, index:', manualWordIndex, 'lastKnownIndex:', lastKnownIndex);
+                    }, 3000); // Increased to 3 seconds
                     
                     // Wait before setting up listener to avoid initial load trigger
                     setTimeout(function() {
@@ -96,7 +102,7 @@ if (manualMode) {
                             return; // Prevent duplicate listeners
                         }
                         listenerSetup = true;
-                        console.log('Setting up Firebase listener, current index:', manualWordIndex);
+                        console.log('Setting up Firebase listener, current index:', manualWordIndex, 'lastKnownIndex:', lastKnownIndex);
                         
                         window.watchSharedManualWordIndex(function(newIndex) {
                             // Ignore if initial load not complete
@@ -106,20 +112,61 @@ if (manualMode) {
                                 return;
                             }
                             
-                            // Only react if the index actually changed
-                            if (newIndex !== lastKnownIndex && newIndex !== manualWordIndex) {
-                                // Don't reset if user is actively typing or has unsaved progress
-                                if ((currentWord && currentWord.length > 0) || (wordCount > 0 && !endOfGameToday)) {
-                                    console.log('Word index changed but user has active game - index:', newIndex, 'currentWord:', currentWord, 'wordCount:', wordCount);
-                                    // Update lastKnownIndex but don't reset yet
+                            // Prevent multiple simultaneous resets
+                            if (isResetting) {
+                                console.log('Reset already in progress, ignoring callback');
+                                return;
+                            }
+                            
+                            // CRITICAL: Only react if the index ACTUALLY changed from what we last saw
+                            // If it's the same as what we have, do nothing
+                            if (newIndex === manualWordIndex) {
+                                console.log('Index unchanged:', newIndex, '- ignoring');
+                                lastKnownIndex = newIndex;
+                                return;
+                            }
+                            
+                            // Only react if the index actually changed from lastKnownIndex
+                            if (newIndex !== lastKnownIndex) {
+                                console.log('Index changed detected: lastKnownIndex=', lastKnownIndex, 'newIndex=', newIndex, 'current manualWordIndex=', manualWordIndex);
+                                // STRICT: Don't reset if global flag is set or user has ANY active game state
+                                if (window.preventResets) {
+                                    console.log('Resets prevented by global flag');
                                     lastKnownIndex = newIndex;
                                     return;
                                 }
                                 
-                                console.log('Shared word index changed from', lastKnownIndex, 'to', newIndex);
+                                const hasActiveGame = (currentWord && currentWord.length > 0) || 
+                                                     (wordCount > 0) || 
+                                                     (answersLetters.length > 0) ||
+                                                     (rowCount > 1);
+                                
+                                if (hasActiveGame) {
+                                    console.log('Word index changed but user has active game - ignoring reset. Index:', newIndex, 
+                                               'currentWord:', currentWord, 'wordCount:', wordCount, 
+                                               'answersLetters:', answersLetters.length, 'rowCount:', rowCount);
+                                    // Update lastKnownIndex but don't reset
+                                    lastKnownIndex = newIndex;
+                                    return;
+                                }
+                                
+                                // Only reset if game is completely empty AND the word actually changed
+                                const manualWordList = window.manualListOfWords || [];
+                                const oldWord = manualWordList[manualWordIndex];
+                                const newWord = manualWordList[newIndex];
+                                
+                                // Double check: only reset if the word actually changed
+                                if (oldWord === newWord) {
+                                    console.log('Word index changed but word is the same - ignoring reset. Old:', oldWord, 'New:', newWord);
+                                    lastKnownIndex = newIndex;
+                                    manualWordIndex = newIndex; // Sync the index but don't reset
+                                    return;
+                                }
+                                
+                                console.log('Shared word index changed from', lastKnownIndex, 'to', newIndex, '- resetting game. Old word:', oldWord, 'New word:', newWord);
+                                isResetting = true;
                                 lastKnownIndex = newIndex;
                                 manualWordIndex = newIndex;
-                                const manualWordList = window.manualListOfWords || [];
                                 
                                 if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
                                     pickedWord = manualWordList[manualWordIndex];
@@ -139,16 +186,20 @@ if (manualMode) {
                                     // Load saved data after a small delay
                                     setTimeout(function() {
                                         loadUserData();
-                                    }, 100);
+                                        isResetting = false; // Allow resets again
+                                    }, 200);
                                     
                                     openNotification(`עברת למילה ${manualWordIndex + 1} מתוך ${manualWordList.length}`);
+                                } else {
+                                    isResetting = false;
                                 }
                             } else {
-                                // Update lastKnownIndex even if no change, to keep in sync
+                                // Index didn't change from lastKnownIndex - just sync it
+                                console.log('Index same as lastKnownIndex:', newIndex, '- syncing only');
                                 lastKnownIndex = newIndex;
                             }
                         });
-                    }, 2000); // Wait 2 seconds to ensure initial load is complete
+                    }, 3000); // Wait 3 seconds to ensure initial load is complete
                 }
             } else {
                 // manualWordList is wrong (probably pointing to main list) or not loaded
@@ -226,6 +277,9 @@ function pickWord() {
 
 function clickLetter(value) {
 if(endOfGameToday!=true){
+    // Prevent resets while user is typing
+    window.preventResets = true;
+    
 currentRow = document.getElementById(`row${rowCount}`)
 for (let i = 1; i <= 5; i++) {
     let tile = `tile${rowCount}${i}`;
@@ -254,6 +308,9 @@ return value;
 function sendWord() {
 
 if (win === false) {
+    // Keep preventResets flag active during gameplay
+    window.preventResets = true;
+    
     let x = checkSpell(currentWord);
     if (currentWord.length === 5) {
         if (checkSpell(currentWord)) {
@@ -266,6 +323,11 @@ if (win === false) {
             answersLetters.push(currentWord);//keeps the word in answers array (not the colors)
             saveUserData();//saves answers to localStorage
             currentWord = '';//in order to start new word at next line
+            
+            // Only allow resets if game is finished
+            if (win || endOfGameToday) {
+                window.preventResets = false;
+            }
         } else {
             animateWakeUp();
             openNotification('המילה לא קיימת');
@@ -452,6 +514,8 @@ if (greenIndices.length === 5) {
     //sendResultToFirebase(wordCount);
     showDistributionStats(wordCount);
     endOfGameToday = true;
+    // Allow resets now that game is finished
+    window.preventResets = false;
 
 
     let winMessage = pickMessage();
@@ -474,6 +538,8 @@ if (wordCount === 6 && greenIndices.length != 5) {
     //sendResultToFirebase(wordCount);
     showDistributionStats(999);
     endOfGameToday = true;
+    // Allow resets now that game is finished
+    window.preventResets = false;
     let message = `המילה היא ${pickedWord} `;
     openNotificationLong(message, false);
     openShareNotificationLong();
@@ -822,10 +888,26 @@ function loadUserData() {
     // Skip loading if in manual mode (check both variable and localStorage)
     const isManualMode = manualMode || localStorage.getItem('manualMode') === 'true';
     if (isManualMode) {
-        // Don't load if user is currently typing (has a currentWord)
+        // STRICT: Don't load if user has ANY active input or game state
         if (currentWord && currentWord.length > 0) {
             console.log('loadUserData skipped - user is currently typing');
             return;
+        }
+        
+        // Don't load if there are any tiles with content in the current row
+        if (rowCount >= 1 && rowCount <= 6) {
+            let hasContentInCurrentRow = false;
+            for (let i = 1; i <= 5; i++) {
+                const tile = document.getElementById(`tile${rowCount}${i}`);
+                if (tile && tile.innerHTML && tile.innerHTML.trim() !== '') {
+                    hasContentInCurrentRow = true;
+                    break;
+                }
+            }
+            if (hasContentInCurrentRow) {
+                console.log('loadUserData skipped - current row has content');
+                return;
+            }
         }
         
         // In manual mode, load data for the current word index
