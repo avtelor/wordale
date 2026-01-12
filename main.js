@@ -60,6 +60,11 @@ if (manualMode) {
                     if (window.setSharedManualWordIndex) {
                         window.setSharedManualWordIndex(0);
                     }
+                } else {
+                    // Ensure Firebase has the correct value (in case it was out of sync)
+                    if (window.setSharedManualWordIndex) {
+                        window.setSharedManualWordIndex(manualWordIndex);
+                    }
                 }
                 pickedWord = manualWordList[manualWordIndex];
                 numOfWordale = manualWordIndex;
@@ -74,19 +79,40 @@ if (manualMode) {
                 if (window.watchSharedManualWordIndex) {
                     let isInitialLoad = true;
                     let lastKnownIndex = manualWordIndex;
+                    let listenerSetup = false;
                     
                     // Wait a bit before setting up listener to avoid initial load trigger
                     setTimeout(function() {
+                        if (listenerSetup) return; // Prevent duplicate listeners
+                        listenerSetup = true;
+                        
                         window.watchSharedManualWordIndex(function(newIndex) {
                             if (isInitialLoad) {
                                 // Skip the first callback (initial load) and sync the index
                                 isInitialLoad = false;
                                 lastKnownIndex = newIndex;
+                                // Make sure we're synced
+                                if (newIndex !== manualWordIndex) {
+                                    manualWordIndex = newIndex;
+                                    const manualWordList = window.manualListOfWords || [];
+                                    if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
+                                        pickedWord = manualWordList[manualWordIndex];
+                                        numOfWordale = manualWordIndex;
+                                    }
+                                }
                                 return;
                             }
                             
-                            // Only react if the index actually changed
+                            // Only react if the index actually changed AND user is not currently typing
                             if (newIndex !== lastKnownIndex && newIndex !== manualWordIndex) {
+                                // Don't reset if user is actively typing
+                                if (currentWord && currentWord.length > 0) {
+                                    console.log('Word index changed but user is typing - will sync after they finish');
+                                    // Store that we need to sync later
+                                    lastKnownIndex = newIndex;
+                                    return;
+                                }
+                                
                                 console.log('Shared word index changed from', lastKnownIndex, 'to', newIndex);
                                 lastKnownIndex = newIndex;
                                 manualWordIndex = newIndex;
@@ -112,7 +138,7 @@ if (manualMode) {
                                 }
                             }
                         });
-                    }, 500); // Small delay to ensure initial load is complete
+                    }, 1000); // Longer delay to ensure initial load is complete
                 }
             } else {
                 // manualWordList is wrong (probably pointing to main list) or not loaded
@@ -786,6 +812,12 @@ function loadUserData() {
     // Skip loading if in manual mode (check both variable and localStorage)
     const isManualMode = manualMode || localStorage.getItem('manualMode') === 'true';
     if (isManualMode) {
+        // Don't load if user is currently typing (has a currentWord)
+        if (currentWord && currentWord.length > 0) {
+            console.log('loadUserData skipped - user is currently typing');
+            return;
+        }
+        
         // In manual mode, load data for the current word index
         const storageKey = `manual_${manualWordIndex}`;
         let savedDateString = localStorage.getItem(`userDate_${storageKey}`);
@@ -797,7 +829,10 @@ function loadUserData() {
         // In manual mode, always load the saved data for this word (don't check date)
         const savedLetters = localStorage.getItem(`answersLetters_${storageKey}`);
         const savedColors = localStorage.getItem(`answersColors_${storageKey}`);
-        if (!savedLetters || !savedColors) return;
+        if (!savedLetters || !savedColors) {
+            console.log('loadUserData skipped - no saved letters/colors');
+            return;
+        }
         answersLetters = JSON.parse(savedLetters);
         answersColors = JSON.parse(savedColors);
         
