@@ -86,6 +86,7 @@ if (manualMode) {
                     let listenerSetup = false;
                     let initialLoadComplete = false;
                     let isResetting = false; // Flag to prevent multiple simultaneous resets
+                    let lastResetTime = 0; // Track when we last reset to prevent rapid resets
                     
                     console.log('Preparing listener setup - initial manualWordIndex:', manualWordIndex, 'pickedWord:', pickedWord);
                     
@@ -105,6 +106,12 @@ if (manualMode) {
                         console.log('Setting up Firebase listener, current index:', manualWordIndex, 'lastKnownIndex:', lastKnownIndex);
                         
                         window.watchSharedManualWordIndex(function(newIndex) {
+                            // Debounce: prevent resets within 2 seconds of last reset
+                            const now = Date.now();
+                            if (now - lastResetTime < 2000) {
+                                console.log('Reset debounce: too soon after last reset, ignoring');
+                                return;
+                            }
                             // Ignore if initial load not complete
                             if (!initialLoadComplete) {
                                 console.log('Ignoring listener callback - initial load not complete, index:', newIndex);
@@ -156,14 +163,33 @@ if (manualMode) {
                                 const newWord = manualWordList[newIndex];
                                 
                                 // Double check: only reset if the word actually changed
-                                if (oldWord === newWord) {
-                                    console.log('Word index changed but word is the same - ignoring reset. Old:', oldWord, 'New:', newWord);
+                                if (!oldWord || !newWord || oldWord === newWord) {
+                                    console.log('Word index changed but word is the same or invalid - ignoring reset. Old:', oldWord, 'New:', newWord, 'Old index:', manualWordIndex, 'New index:', newIndex);
                                     lastKnownIndex = newIndex;
                                     manualWordIndex = newIndex; // Sync the index but don't reset
+                                    // Also sync pickedWord if it's different
+                                    if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
+                                        const shouldBeWord = manualWordList[manualWordIndex];
+                                        if (pickedWord !== shouldBeWord) {
+                                            console.log('Syncing pickedWord without reset:', pickedWord, '->', shouldBeWord);
+                                            pickedWord = shouldBeWord;
+                                            numOfWordale = manualWordIndex;
+                                        }
+                                    }
                                     return;
                                 }
                                 
-                                console.log('Shared word index changed from', lastKnownIndex, 'to', newIndex, '- resetting game. Old word:', oldWord, 'New word:', newWord);
+                                // FINAL CHECK: Is pickedWord already the correct word?
+                                const shouldBeWord = manualWordList[newIndex];
+                                if (pickedWord === shouldBeWord) {
+                                    console.log('Word already correct - ignoring reset. pickedWord:', pickedWord, 'shouldBeWord:', shouldBeWord);
+                                    lastKnownIndex = newIndex;
+                                    manualWordIndex = newIndex;
+                                    numOfWordale = manualWordIndex;
+                                    return;
+                                }
+                                
+                                console.log('CONFIRMED: Word actually changed - resetting game. Old word:', oldWord, 'New word:', newWord, 'Old index:', manualWordIndex, 'New index:', newIndex);
                                 isResetting = true;
                                 lastKnownIndex = newIndex;
                                 manualWordIndex = newIndex;
@@ -182,6 +208,9 @@ if (manualMode) {
                                     answersLetters = [];
                                     
                                     resetGameForNewWord();
+                                    
+                                    // Update last reset time
+                                    lastResetTime = Date.now();
                                     
                                     // Load saved data after a small delay
                                     setTimeout(function() {
@@ -1156,6 +1185,9 @@ function toggleManualMode() {
 }
 
 window.resetGameForNewWord = function() {
+    // Add logging to track when this is called
+    console.log('resetGameForNewWord called - current pickedWord:', pickedWord, 'manualWordIndex:', manualWordIndex);
+    
     win = false;
     endOfGameToday = false;
     rowCount = 1;
