@@ -194,11 +194,8 @@ console.log(countPlayersPerDay());
 
       /*LOAD LOAD LOAD LOAD LOAD LOAD LOAD IMPORTANT*/
   
-      // Load user data (works for both manual and auto mode now)
-      const isManualMode = localStorage.getItem('manualMode') === 'true';
-      if (window.loadUserData) {
-          window.loadUserData();
-      }
+      // Don't load user data automatically - let Firebase synchronization happen first
+      // User data will be loaded after Firebase sync is complete
       
       // Initialize manual mode UI
       setTimeout(function() {

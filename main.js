@@ -107,13 +107,14 @@ if (manualMode) {
                 numOfWordale = manualWordIndex;
                 console.log('Manual mode - using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
                 
-                // Load saved data for this word after setting pickedWord (only if no current input)
-                setTimeout(function() {
-                    // Only load if user is not currently typing
-                    if (!currentWord || currentWord.length === 0) {
+                // Now that we have the correct word from Firebase, load user data for this word
+                // Only on initial page load - not when syncing to new word
+                if (!window.hasInitialLoadCompleted) {
+                    setTimeout(function() {
                         loadUserData();
-                    }
-                }, 200);
+                        window.hasInitialLoadCompleted = true;
+                    }, 500);
+                }
                 
                 // Set up listener for shared word index changes (after initial load)
                 if (window.watchSharedManualWordIndex) {
@@ -125,10 +126,11 @@ if (manualMode) {
                     
                     console.log('Preparing listener setup - initial manualWordIndex:', manualWordIndex, 'pickedWord:', pickedWord);
                     
-                    // Mark initial load as complete after a delay
+                    // Mark initial load as complete after a delay 
                     setTimeout(function() {
                         initialLoadComplete = true;
                         console.log('Initial load complete, index:', manualWordIndex, 'lastKnownIndex:', lastKnownIndex);
+                        // Don't load user data here - it should only load on initial page load, not during sync
                     }, 3000); // Increased to 3 seconds
                     
                     // Wait before setting up listener to avoid initial load trigger
@@ -232,6 +234,11 @@ if (manualMode) {
     }
 } else {
     pickedWord = pickWord();
+    // Load user data for auto mode (daily word) - only on initial load
+    if (!window.hasInitialLoadCompleted) {
+        loadUserData();
+        window.hasInitialLoadCompleted = true;
+    }
 }
 //set the timer for next wordale
 countDownTimer();
