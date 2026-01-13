@@ -32,6 +32,41 @@ let manualWordIndex = 0;
 const MANUAL_MODE_PASSWORD = "6060";
 // Global flag to prevent resets during active gameplay
 window.preventResets = false;
+
+// Define clickLetter immediately to prevent "not defined" errors
+// This ensures it's available even if initialization code fails
+// The real implementation will replace this later
+window.clickLetter = function(value) {
+    // Temporary fallback - real function will replace this
+    // This prevents "not defined" errors if script hasn't fully loaded
+    try {
+        if (typeof endOfGameToday !== 'undefined' && endOfGameToday === true) {
+            return;
+        }
+        if (typeof rowCount === 'undefined') return;
+        const currentRow = document.getElementById(`row${rowCount}`);
+        if (!currentRow) return;
+        for (let i = 1; i <= 5; i++) {
+            const tile = document.getElementById(`tile${rowCount}${i}`);
+            if (tile && tile.innerHTML === '') {
+                let finalValue = value;
+                if (typeof changeToFinal === 'function') {
+                    finalValue = changeToFinal(value);
+                }
+                if (typeof currentWord !== 'undefined') {
+                    currentWord += finalValue;
+                }
+                tile.setAttribute('data-animation', 'pop');
+                tile.style.border = "solid rgb(34, 34, 34)";
+                tile.innerHTML = finalValue;
+                break;
+            }
+        }
+    } catch (e) {
+        console.error('Error in clickLetter fallback:', e);
+    }
+};
+
 //word index is the numOfWordale calculated later on
 // Check if manual mode is enabled in localStorage
 manualMode = localStorage.getItem('manualMode') === 'true';
@@ -323,6 +358,8 @@ for (let i = 1; i <= 5; i++) {
 }
 }
 }
+// Make clickLetter available globally immediately
+window.clickLetter = clickLetter;
 function changeToFinal(value) {
 if (currentWord.length === 4) {
     if (value === 'פ') { value = 'ף'; };
@@ -1453,3 +1490,7 @@ function closeInstructions() {
 document.getElementById('instructions').style.display = 'none';
 }
 
+// Ensure all functions are available globally (functions are hoisted, but ensure they're on window)
+if (typeof sendWord === 'function') window.sendWord = sendWord;
+if (typeof eraseLetter === 'function') window.eraseLetter = eraseLetter;
+if (typeof eraseWord === 'function') window.eraseWord = eraseWord;
