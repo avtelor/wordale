@@ -47,36 +47,43 @@
       
       // Functions for shared manual word index
       window.getSharedManualWordIndex = function(callback) {
+        console.log('🔍 Getting shared manual word index from Firebase...');
         get(child(ref(db), 'manualMode/currentWordIndex')).then((snapshot) => {
           if (snapshot.exists()) {
             const index = parseInt(snapshot.val()) || 0;
+            console.log('✅ Retrieved word index from Firebase:', index);
             callback(index);
           } else {
+            console.log('📝 No word index found, initializing to 0...');
             // Initialize to 0 in Firebase if doesn't exist (so all devices sync)
             set(ref(db, 'manualMode/currentWordIndex'), 0).then(() => {
+              console.log('✅ Initialized word index to 0 in Firebase');
               callback(0);
             }).catch((error) => {
-              console.error('Error initializing word index:', error);
+              console.error('❌ Error initializing word index:', error);
               callback(0);
             });
           }
         }).catch((error) => {
-          console.error('Error getting shared word index:', error);
+          console.error('❌ Error getting shared word index:', error);
+          console.error('Database URL:', 'https://wordle-e76d9-default-rtdb.europe-west1.firebasedatabase.app');
           callback(0);
         });
       };
       
       window.setSharedManualWordIndex = function(index) {
-        console.log('Setting shared manual word index to:', index);
+        console.log('🚀 Setting shared manual word index to:', index);
         set(ref(db, 'manualMode/currentWordIndex'), index).then(() => {
-          console.log('Successfully updated word index in Firebase to:', index);
+          console.log('✅ Successfully updated word index in Firebase to:', index);
         }).catch((error) => {
-          console.error('Error setting shared word index:', error);
+          console.error('❌ Error setting shared word index:', error);
+          console.error('Full error details:', error);
         });
       };
       
       window.watchSharedManualWordIndex = function(callback) {
         try {
+          console.log('👂 Setting up Firebase listener for word index changes...');
           const wordIndexRef = ref(db, 'manualMode/currentWordIndex');
           let isFirstCall = true;
           onValue(wordIndexRef, (snapshot) => {
@@ -85,17 +92,22 @@
               // Skip the first call (initial setup) - it will be handled by getSharedManualWordIndex
               if (isFirstCall) {
                 isFirstCall = false;
-                console.log('Firebase listener set up, initial value:', newIndex);
+                console.log('🎯 Firebase listener set up successfully, initial value:', newIndex);
                 return;
               }
-              console.log('Firebase detected word index change to:', newIndex);
+              console.log('🔄 Firebase detected word index change to:', newIndex);
+              console.log('🔔 Calling callback with new index:', newIndex);
               callback(newIndex);
+            } else {
+              console.log('⚠️ Firebase listener: snapshot does not exist');
             }
           }, (error) => {
-            console.error('Error watching shared word index:', error);
+            console.error('❌ Error watching shared word index:', error);
+            console.error('Full error details:', error);
           });
         } catch (error) {
-          console.error('Error setting up word index watcher:', error);
+          console.error('❌ Error setting up word index watcher:', error);
+          console.error('Full error details:', error);
         }
       };
       
@@ -193,6 +205,18 @@ get(child(dbRef, 'results/')).then((snapshot) => {
 console.log(countPlayersPerDay());
 
       /*LOAD LOAD LOAD LOAD LOAD LOAD LOAD IMPORTANT*/
+  
+      // Test Firebase connection
+      setTimeout(() => {
+        console.log('🧪 Testing Firebase connection...');
+        if (window.getSharedManualWordIndex) {
+          window.getSharedManualWordIndex((index) => {
+            console.log('🧪 Firebase test successful, current index:', index);
+          });
+        } else {
+          console.log('❌ Firebase functions not available');
+        }
+      }, 2000);
   
       // Don't load user data automatically - let Firebase synchronization happen first
       // User data will be loaded after Firebase sync is complete

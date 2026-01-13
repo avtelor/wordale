@@ -80,7 +80,9 @@ if (manualMode) {
     }
     
     // Get the shared word index from Firebase (all users share the same word)
+    console.log('🔗 Manual mode detected, attempting Firebase connection...');
     if (window.getSharedManualWordIndex) {
+        console.log('✅ Firebase function available, getting shared word index...');
         window.getSharedManualWordIndex(function(sharedIndex) {
             manualWordIndex = sharedIndex;
             // Get the manual wordlist
@@ -143,22 +145,25 @@ if (manualMode) {
                         console.log('Setting up Firebase listener, current index:', manualWordIndex, 'lastKnownIndex:', lastKnownIndex);
                         
                         window.watchSharedManualWordIndex(function(newIndex) {
+                            console.log('🔔 Firebase listener callback triggered with index:', newIndex);
+                            console.log('🔍 Current state: initialLoadComplete=', initialLoadComplete, 'isResetting=', isResetting, 'lastKnownIndex=', lastKnownIndex, 'manualWordIndex=', manualWordIndex);
+                            
                             // Ignore if initial load not complete
                             if (!initialLoadComplete) {
-                                console.log('Ignoring listener callback - initial load not complete, index:', newIndex);
+                                console.log('⏳ Ignoring listener callback - initial load not complete, index:', newIndex);
                                 lastKnownIndex = newIndex;
                                 return;
                             }
                             
                             // Prevent multiple simultaneous resets
                             if (isResetting) {
-                                console.log('Reset already in progress, ignoring callback');
+                                console.log('⏸️ Reset already in progress, ignoring callback');
                                 return;
                             }
                             
                             // Only react if the index actually changed from what we last saw
                             if (newIndex !== lastKnownIndex && newIndex !== manualWordIndex) {
-                                console.log('Word index changed detected: lastKnownIndex=', lastKnownIndex, 'newIndex=', newIndex, 'current manualWordIndex=', manualWordIndex);
+                                console.log('🔄 Word index changed detected: lastKnownIndex=', lastKnownIndex, 'newIndex=', newIndex, 'current manualWordIndex=', manualWordIndex);
                                 
                                 // Don't reset if user is actively typing RIGHT NOW
                                 if (window.preventResets && currentWord && currentWord.length > 0) {
@@ -220,6 +225,7 @@ if (manualMode) {
         });
     } else {
         // Fallback if Firebase functions not available
+        console.log('❌ Firebase functions not available, using localStorage fallback');
         manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
         let manualWordList = window.manualListOfWords;
         if (manualWordList && manualWordList.length > 0 && manualWordList.length < 100) {
@@ -1299,10 +1305,16 @@ function showPasswordPrompt() {
 }
 
 function moveToNextWord() {
-    if (!manualMode) return;
+    console.log('🎯 moveToNextWord called');
+    if (!manualMode) {
+        console.log('❌ Not in manual mode, exiting');
+        return;
+    }
     
     const manualWordList = window.manualListOfWords || [];
+    console.log('📋 Manual word list length:', manualWordList.length);
     if (manualWordList.length === 0) {
+        console.log('❌ Manual word list is empty');
         openNotification('רשימת המילים הידנית לא נטענה');
         return;
     }
@@ -1313,8 +1325,11 @@ function moveToNextWord() {
         newIndex = 0;
     }
     
+    console.log('🔄 Moving from word index', manualWordIndex, 'to', newIndex);
+    
     // Update the shared word index in Firebase (this will trigger updates for all users)
     if (window.setSharedManualWordIndex) {
+        console.log('🚀 Calling setSharedManualWordIndex with:', newIndex);
         window.setSharedManualWordIndex(newIndex);
         // The listener will handle updating the local state when Firebase updates
         // But we also update locally immediately for this user
