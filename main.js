@@ -80,16 +80,16 @@ if (manualMode) {
     }
     
     // Get the shared word index from Firebase (all users share the same word)
-    console.log('🔗 Manual mode detected, attempting Firebase connection...');
+    console.log('[WORDLE_SYNC] Manual mode detected, attempting Firebase connection...');
     if (window.getSharedManualWordIndex) {
-        console.log('✅ Firebase function available, getting shared word index...');
+        console.log('[WORDLE_SYNC] Firebase function available, getting shared word index...');
         window.getSharedManualWordIndex(function(sharedIndex) {
             manualWordIndex = sharedIndex;
             // Get the manual wordlist
             let manualWordList = window.manualListOfWords;
-            console.log('Initialization - manualWordList:', manualWordList);
-            console.log('Initialization - manualWordList length:', manualWordList ? manualWordList.length : 'undefined');
-            console.log('Initialization - Shared word index from Firebase:', sharedIndex);
+            console.log('[WORDLE_SYNC] manualWordList:', manualWordList);
+            console.log('[WORDLE_SYNC] manualWordList length:', manualWordList ? manualWordList.length : 'undefined');
+            console.log('[WORDLE_SYNC] Shared word index from Firebase:', sharedIndex);
             
             // Check if manualWordList is actually the manual list (should be small, not 1462)
             if (manualWordList && manualWordList.length > 0 && manualWordList.length < 100) {
@@ -107,7 +107,7 @@ if (manualMode) {
                 }
                 pickedWord = manualWordList[manualWordIndex];
                 numOfWordale = manualWordIndex;
-                console.log('Manual mode - using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
+                console.log('[WORDLE_SYNC] Using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
                 
                 // Now that we have the correct word from Firebase, load user data for this word
                 // Only on initial page load - not when syncing to new word
@@ -126,55 +126,55 @@ if (manualMode) {
                     let isResetting = false; // Flag to prevent multiple simultaneous resets
                     let lastResetTime = 0; // Track when we last reset to prevent rapid resets
                     
-                    console.log('Preparing listener setup - initial manualWordIndex:', manualWordIndex, 'pickedWord:', pickedWord);
+                    console.log('[WORDLE_SYNC] Preparing listener setup - initial manualWordIndex:', manualWordIndex, 'pickedWord:', pickedWord);
                     
                     // Mark initial load as complete after a delay 
                     setTimeout(function() {
                         initialLoadComplete = true;
-                        console.log('Initial load complete, index:', manualWordIndex, 'lastKnownIndex:', lastKnownIndex);
+                        console.log('[WORDLE_SYNC] Initial load complete, index:', manualWordIndex, 'lastKnownIndex:', lastKnownIndex);
                         // Don't load user data here - it should only load on initial page load, not during sync
                     }, 3000); // Increased to 3 seconds
                     
                     // Wait before setting up listener to avoid initial load trigger
                     setTimeout(function() {
                         if (listenerSetup) {
-                            console.log('Listener already set up, skipping');
+                            console.log('[WORDLE_SYNC] Listener already set up, skipping');
                             return; // Prevent duplicate listeners
                         }
                         listenerSetup = true;
-                        console.log('Setting up Firebase listener, current index:', manualWordIndex, 'lastKnownIndex:', lastKnownIndex);
+                        console.log('[WORDLE_SYNC] Setting up Firebase listener, current index:', manualWordIndex, 'lastKnownIndex:', lastKnownIndex);
                         
                         window.watchSharedManualWordIndex(function(newIndex) {
-                            console.log('🔔 Firebase listener callback triggered with index:', newIndex);
-                            console.log('🔍 Current state: initialLoadComplete=', initialLoadComplete, 'isResetting=', isResetting, 'lastKnownIndex=', lastKnownIndex, 'manualWordIndex=', manualWordIndex);
+                            console.log('[WORDLE_SYNC] Firebase listener callback triggered with index:', newIndex);
+                            console.log('[WORDLE_SYNC] Current state: initialLoadComplete=', initialLoadComplete, 'isResetting=', isResetting, 'lastKnownIndex=', lastKnownIndex, 'manualWordIndex=', manualWordIndex);
                             
                             // Ignore if initial load not complete
                             if (!initialLoadComplete) {
-                                console.log('⏳ Ignoring listener callback - initial load not complete, index:', newIndex);
+                                console.log('[WORDLE_SYNC] Ignoring listener callback - initial load not complete, index:', newIndex);
                                 lastKnownIndex = newIndex;
                                 return;
                             }
                             
                             // Prevent multiple simultaneous resets
                             if (isResetting) {
-                                console.log('⏸️ Reset already in progress, ignoring callback');
+                                console.log('[WORDLE_SYNC] Reset already in progress, ignoring callback');
                                 return;
                             }
                             
                             // Only react if the index actually changed from what we last saw
                             if (newIndex !== lastKnownIndex && newIndex !== manualWordIndex) {
-                                console.log('🔄 Word index changed detected: lastKnownIndex=', lastKnownIndex, 'newIndex=', newIndex, 'current manualWordIndex=', manualWordIndex);
+                                console.log('[WORDLE_SYNC] Word index changed detected: lastKnownIndex=', lastKnownIndex, 'newIndex=', newIndex, 'current manualWordIndex=', manualWordIndex);
                                 
                                 // Don't reset if user is actively typing RIGHT NOW
                                 if (window.preventResets && currentWord && currentWord.length > 0) {
-                                    console.log('User is actively typing - deferring reset. Will sync index but wait for user to finish.');
+                                    console.log('[WORDLE_SYNC] User is actively typing - deferring reset. Will sync index but wait for user to finish.');
                                     lastKnownIndex = newIndex;
                                     return;
                                 }
                                 
                                 const manualWordList = window.manualListOfWords || [];
                                 
-                                console.log('SYNCHRONIZING: Word changed - resetting to new word. New index:', newIndex);
+                                console.log('[WORDLE_SYNC] SYNCHRONIZING: Word changed - resetting to new word. New index:', newIndex);
                                 isResetting = true;
                                 lastKnownIndex = newIndex;
                                 manualWordIndex = newIndex;
@@ -205,7 +205,7 @@ if (manualMode) {
                                 }
                             } else {
                                 // Index didn't change - just sync it
-                                console.log('Index same as known:', newIndex, '- syncing only');
+                                console.log('[WORDLE_SYNC] Index same as known:', newIndex, '- syncing only');
                                 lastKnownIndex = newIndex;
                             }
                         });
@@ -220,12 +220,12 @@ if (manualMode) {
                     window.setSharedManualWordIndex(0);
                 }
                 pickedWord = pickWord();
-                console.log('Manual mode - falling back to main list, word:', pickedWord);
+                console.log('[WORDLE_SYNC] Manual mode - falling back to main list, word:', pickedWord);
             }
         });
     } else {
         // Fallback if Firebase functions not available
-        console.log('❌ Firebase functions not available, using localStorage fallback');
+        console.log('[WORDLE_SYNC] Firebase functions not available, using localStorage fallback');
         manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
         let manualWordList = window.manualListOfWords;
         if (manualWordList && manualWordList.length > 0 && manualWordList.length < 100) {
@@ -1305,16 +1305,16 @@ function showPasswordPrompt() {
 }
 
 function moveToNextWord() {
-    console.log('🎯 moveToNextWord called');
+    console.log('[WORDLE_SYNC] moveToNextWord called');
     if (!manualMode) {
-        console.log('❌ Not in manual mode, exiting');
+        console.log('[WORDLE_SYNC] Not in manual mode, exiting');
         return;
     }
     
     const manualWordList = window.manualListOfWords || [];
-    console.log('📋 Manual word list length:', manualWordList.length);
+    console.log('[WORDLE_SYNC] Manual word list length:', manualWordList.length);
     if (manualWordList.length === 0) {
-        console.log('❌ Manual word list is empty');
+        console.log('[WORDLE_SYNC] Manual word list is empty');
         openNotification('רשימת המילים הידנית לא נטענה');
         return;
     }
@@ -1325,11 +1325,11 @@ function moveToNextWord() {
         newIndex = 0;
     }
     
-    console.log('🔄 Moving from word index', manualWordIndex, 'to', newIndex);
+    console.log('[WORDLE_SYNC] Moving from word index', manualWordIndex, 'to', newIndex);
     
     // Update the shared word index in Firebase (this will trigger updates for all users)
     if (window.setSharedManualWordIndex) {
-        console.log('🚀 Calling setSharedManualWordIndex with:', newIndex);
+        console.log('[WORDLE_SYNC] Calling setSharedManualWordIndex with:', newIndex);
         window.setSharedManualWordIndex(newIndex);
         // The listener will handle updating the local state when Firebase updates
         // But we also update locally immediately for this user
