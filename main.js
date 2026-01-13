@@ -224,6 +224,9 @@ if (manualMode) {
                 console.log('[WORDLE_SYNC] Manual mode - falling back to main list, word:', pickedWord);
             }
         });
+        } else {
+            console.log('[WORDLE_SYNC] Firebase getSharedManualWordIndex function not available during initialization');
+        }
     }
     
     // Try to initialize manual mode, with retries if Firebase functions aren't ready yet
