@@ -247,9 +247,8 @@ if (manualMode) {
                                     // Update last reset time
                                     lastResetTime = Date.now();
                                     
-                                    // Load saved data after a small delay
+                                    // Allow resets again after a small delay
                                     setTimeout(function() {
-                                        loadUserData();
                                         isResetting = false; // Allow resets again
                                     }, 200);
                                     
@@ -1388,9 +1387,6 @@ function moveToNextWord() {
         // Reset the UI (clear tiles, keyboard, etc.)
         resetGameForNewWord();
         
-        // Load saved data for this word if it exists
-        loadUserData();
-        
         if (newIndex === 0) {
             openNotification('חזרה למילה הראשונה');
         } else {
@@ -1403,7 +1399,6 @@ function moveToNextWord() {
         pickedWord = manualWordList[manualWordIndex];
         numOfWordale = manualWordIndex;
         resetGameForNewWord();
-        loadUserData();
         openNotification(`מילה ${manualWordIndex + 1} מתוך ${manualWordList.length}`);
     }
 }
