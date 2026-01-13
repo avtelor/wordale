@@ -79,11 +79,12 @@ if (manualMode) {
         pickedWord = pickWord(); // Fallback
     }
     
-    // Get the shared word index from Firebase (all users share the same word)
-    console.log('[WORDLE_SYNC] Manual mode detected, attempting Firebase connection...');
-    if (window.getSharedManualWordIndex) {
-        console.log('[WORDLE_SYNC] Firebase function available, getting shared word index...');
-        window.getSharedManualWordIndex(function(sharedIndex) {
+    // Wait for Firebase functions to become available, then initialize manual mode
+    console.log('[WORDLE_SYNC] Manual mode detected, waiting for Firebase functions...');
+    function initializeManualMode() {
+        if (window.getSharedManualWordIndex) {
+            console.log('[WORDLE_SYNC] Firebase functions available, getting shared word index...');
+            window.getSharedManualWordIndex(function(sharedIndex) {
             manualWordIndex = sharedIndex;
             // Get the manual wordlist
             let manualWordList = window.manualListOfWords;
@@ -223,21 +224,38 @@ if (manualMode) {
                 console.log('[WORDLE_SYNC] Manual mode - falling back to main list, word:', pickedWord);
             }
         });
-    } else {
-        // Fallback if Firebase functions not available
-        console.log('[WORDLE_SYNC] Firebase functions not available, using localStorage fallback');
-        manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
-        let manualWordList = window.manualListOfWords;
-        if (manualWordList && manualWordList.length > 0 && manualWordList.length < 100) {
-            if (manualWordIndex < 0 || manualWordIndex >= manualWordList.length) {
-                manualWordIndex = 0;
-            }
-            pickedWord = manualWordList[manualWordIndex];
-            numOfWordale = manualWordIndex;
+    }
+    
+    // Try to initialize manual mode, with retries if Firebase functions aren't ready yet
+    let attempts = 0;
+    const maxAttempts = 20;
+    function tryInitializeManualMode() {
+        attempts++;
+        if (window.getSharedManualWordIndex) {
+            console.log('[WORDLE_SYNC] Firebase functions available after', attempts, 'attempts');
+            initializeManualMode();
+        } else if (attempts < maxAttempts) {
+            console.log('[WORDLE_SYNC] Firebase functions not ready yet, attempt', attempts, '/', maxAttempts, '- retrying...');
+            setTimeout(tryInitializeManualMode, 100); // Much faster - 100ms instead of 1000ms
         } else {
-            pickedWord = pickWord();
+            // Fallback if Firebase functions not available after retries
+            console.log('[WORDLE_SYNC] Firebase functions not available after', maxAttempts, 'attempts, using localStorage fallback');
+            manualWordIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
+            let manualWordList = window.manualListOfWords;
+            if (manualWordList && manualWordList.length > 0 && manualWordList.length < 100) {
+                if (manualWordIndex < 0 || manualWordIndex >= manualWordList.length) {
+                    manualWordIndex = 0;
+                }
+                pickedWord = manualWordList[manualWordIndex];
+                numOfWordale = manualWordIndex;
+            } else {
+                pickedWord = pickWord();
+            }
         }
     }
+    
+    // Start trying to initialize manual mode
+    tryInitializeManualMode();
 } else {
     pickedWord = pickWord();
     // Load user data for auto mode (daily word) - only on initial load
@@ -1254,6 +1272,83 @@ window.manualModeInit = function() {
     }
 };
 
+function setupManualModeListener() {
+    // Prevent multiple listeners
+    if (window.manualModeListenerSetup) {
+        console.log('[WORDLE_SYNC] Manual mode listener already set up, skipping');
+        return;
+    }
+    window.manualModeListenerSetup = true;
+    
+    console.log('[WORDLE_SYNC] Setting up manual mode Firebase listener...');
+    if (window.watchSharedManualWordIndex) {
+        let lastKnownIndex = manualWordIndex;
+        let initialLoadComplete = true; // Since we're setting up after initial load
+        let isResetting = false;
+        
+        console.log('[WORDLE_SYNC] Setting up Firebase listener, current index:', manualWordIndex, 'lastKnownIndex:', lastKnownIndex);
+        
+        window.watchSharedManualWordIndex(function(newIndex) {
+            console.log('[WORDLE_SYNC] Firebase listener callback triggered with index:', newIndex);
+            console.log('[WORDLE_SYNC] Current state: initialLoadComplete=', initialLoadComplete, 'isResetting=', isResetting, 'lastKnownIndex=', lastKnownIndex, 'manualWordIndex=', manualWordIndex);
+            
+            // Prevent multiple simultaneous resets
+            if (isResetting) {
+                console.log('[WORDLE_SYNC] Reset already in progress, ignoring callback');
+                return;
+            }
+            
+            // Only react if the index actually changed from what we last saw
+            if (newIndex !== lastKnownIndex && newIndex !== manualWordIndex) {
+                console.log('[WORDLE_SYNC] Word index changed detected: lastKnownIndex=', lastKnownIndex, 'newIndex=', newIndex, 'current manualWordIndex=', manualWordIndex);
+                
+                // Don't reset if user is actively typing RIGHT NOW
+                if (window.preventResets && currentWord && currentWord.length > 0) {
+                    console.log('[WORDLE_SYNC] User is actively typing - deferring reset. Will sync index but wait for user to finish.');
+                    lastKnownIndex = newIndex;
+                    return;
+                }
+                
+                const manualWordList = window.manualListOfWords || [];
+                
+                console.log('[WORDLE_SYNC] SYNCHRONIZING: Word changed - resetting to new word. New index:', newIndex);
+                isResetting = true;
+                lastKnownIndex = newIndex;
+                manualWordIndex = newIndex;
+                
+                if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
+                    pickedWord = manualWordList[manualWordIndex];
+                    numOfWordale = manualWordIndex;
+                    
+                    // Reset game state completely for all devices
+                    win = false;
+                    endOfGameToday = false;
+                    rowCount = 1;
+                    wordCount = 0;
+                    currentWord = '';
+                    answersColors = [];
+                    answersLetters = [];
+                    
+                    resetGameForNewWord();
+                    
+                    // Allow resets again immediately - no need for delay
+                    isResetting = false;
+                    
+                    openNotification(`מילה ${manualWordIndex + 1} מתוך ${manualWordList.length}`);
+                } else {
+                    isResetting = false;
+                }
+            } else {
+                // Index didn't change - just sync it
+                console.log('[WORDLE_SYNC] Index same as known:', newIndex, '- syncing only');
+                lastKnownIndex = newIndex;
+            }
+        });
+    } else {
+        console.log('[WORDLE_SYNC] Firebase watchSharedManualWordIndex function not available');
+    }
+}
+
 function showPasswordPrompt() {
     const password = prompt("הזן סיסמה בת 4 ספרות כדי לעבור למילה הבאה:");
     
@@ -1297,6 +1392,10 @@ function showPasswordPrompt() {
             // Update mode indicator
             const modeIndicator = document.getElementById('modeIndicator');
             if (modeIndicator) modeIndicator.textContent = 'M';
+            
+            // Set up Firebase listener for manual mode (since we're entering it now)
+            console.log('[WORDLE_SYNC] Entering manual mode, setting up Firebase listener...');
+            setupManualModeListener();
         }
         moveToNextWord();
     } else if (password !== null) {

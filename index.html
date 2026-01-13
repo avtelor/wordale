@@ -72,9 +72,11 @@
       };
       
       window.setSharedManualWordIndex = function(index) {
-        console.log('[WORDLE_SYNC] Setting shared word index to:', index);
+        const startTime = Date.now();
+        console.log('[WORDLE_SYNC] Setting shared word index to:', index, 'at', startTime);
         set(ref(db, 'manualMode/currentWordIndex'), index).then(() => {
-          console.log('[WORDLE_SYNC] Successfully updated word index in Firebase to:', index);
+          const endTime = Date.now();
+          console.log('[WORDLE_SYNC] Successfully updated word index in Firebase to:', index, 'took', (endTime - startTime) + 'ms');
         }).catch((error) => {
           console.error('[WORDLE_SYNC] Error setting shared word index:', error);
           console.error('[WORDLE_SYNC] Full error details:', error);
@@ -95,7 +97,8 @@
                 console.log('[WORDLE_SYNC] Firebase listener set up successfully, initial value:', newIndex);
                 return;
               }
-              console.log('[WORDLE_SYNC] Firebase detected word index change to:', newIndex);
+              const listenerTime = Date.now();
+              console.log('[WORDLE_SYNC] Firebase detected word index change to:', newIndex, 'at', listenerTime);
               console.log('[WORDLE_SYNC] Calling callback with new index:', newIndex);
               callback(newIndex);
             } else {
