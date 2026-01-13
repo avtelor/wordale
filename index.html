@@ -67,7 +67,12 @@
       };
       
       window.setSharedManualWordIndex = function(index) {
-        set(ref(db, 'manualMode/currentWordIndex'), index);
+        console.log('Setting shared manual word index to:', index);
+        set(ref(db, 'manualMode/currentWordIndex'), index).then(() => {
+          console.log('Successfully updated word index in Firebase to:', index);
+        }).catch((error) => {
+          console.error('Error setting shared word index:', error);
+        });
       };
       
       window.watchSharedManualWordIndex = function(callback) {
@@ -83,6 +88,7 @@
                 console.log('Firebase listener set up, initial value:', newIndex);
                 return;
               }
+              console.log('Firebase detected word index change to:', newIndex);
               callback(newIndex);
             }
           }, (error) => {
