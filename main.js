@@ -1011,8 +1011,19 @@ function loadUserData() {
         console.log('[RESTORE_DEBUG] WARNING: These colors may have been calculated for a different target word!');
         console.log('[RESTORE_DEBUG] ===============================');
         
-        answersLetters = JSON.parse(savedLetters);
-        answersColors = JSON.parse(savedColors);
+        try {
+            answersLetters = JSON.parse(savedLetters);
+            answersColors = JSON.parse(savedColors);
+            console.log('[RESTORE_DEBUG] JSON parsing successful');
+        } catch (error) {
+            console.log('[RESTORE_DEBUG] JSON parsing failed - corrupted data detected:', error.message);
+            console.log('[RESTORE_DEBUG] Clearing corrupted localStorage data for', storageKey);
+            // Clear the corrupted data
+            localStorage.removeItem(`answersLetters_${storageKey}`);
+            localStorage.removeItem(`answersColors_${storageKey}`);
+            localStorage.removeItem(`userDate_${storageKey}`);
+            return;
+        }
         
         // Don't restore if user is currently typing in the current row
         const currentRowHasInput = currentWord && currentWord.length > 0;
