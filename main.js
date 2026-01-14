@@ -1423,9 +1423,25 @@ function enableManualMode() {
 
 function updateManagerStatus() {
     // Update current status display
-    document.getElementById('currentMode').textContent = manualMode ? 'מצב ידני' : 'מצב אוטומטי';
+    const gameMode = localStorage.getItem('gameMode') || 'test';
+    const gameModeText = {
+        'test': 'בדיקה (Test)',
+        'mayabd': 'מאיהוורדל (Maya BD)', 
+        'ignite': 'Ignite Wordle'
+    };
+    
+    document.getElementById('currentMode').textContent = manualMode ? 
+        `מצב ידני - ${gameModeText[gameMode]}` : 
+        `מצב אוטומטי - ${gameModeText[gameMode]}`;
     document.getElementById('currentWord').textContent = pickedWord || '?';
     document.getElementById('currentIndex').textContent = manualWordIndex + 1;
+    
+    // Update radio button selection
+    const currentGameMode = localStorage.getItem('gameMode') || 'test';
+    const radioButton = document.querySelector(`input[name="gameMode"][value="${currentGameMode}"]`);
+    if (radioButton) {
+        radioButton.checked = true;
+    }
 }
 
 function moveToNextWordFromManager() {
@@ -1436,6 +1452,111 @@ function moveToNextWordFromManager() {
     } else {
         openNotification('יש להיות במצב ידני');
     }
+}
+
+function changeGameMode(mode) {
+    console.log('[WORDLE_SYNC] Changing game mode to:', mode);
+    
+    // Store the selected mode
+    localStorage.setItem('gameMode', mode);
+    
+    // Define mode configurations
+    const modeConfigs = {
+        'test': {
+            favicon: 'wordale-favicon.png',
+            title: 'בדיקה',
+            wordlistFile: 'wordlist-manual.js',
+            wordlistVar: 'manualListOfWords'
+        },
+        'mayabd': {
+            favicon: 'wordale-favicon-mayabd.png',
+            title: 'מאיהוורדל',
+            wordlistFile: 'wordlist-mayabd.js',
+            wordlistVar: 'mayaBdListOfWords'
+        },
+        'ignite': {
+            favicon: 'wordale-favicon-ignite.png',
+            title: 'Ignite Wordle',
+            wordlistFile: 'wordlist-ignite.js',
+            wordlistVar: 'igniteListOfWords'
+        }
+    };
+    
+    const config = modeConfigs[mode];
+    if (!config) return;
+    
+    // Update favicon
+    const faviconImg = document.querySelector('img[src*="wordale-favicon"]');
+    if (faviconImg) {
+        faviconImg.src = config.favicon;
+    }
+    
+    // Update page title and header
+    const titleElement = document.querySelector('.title');
+    if (titleElement) {
+        titleElement.textContent = config.title;
+    }
+    document.title = `${config.title} - משחק ב-6 ניחושים`;
+    
+    // Update favicon link in head
+    const faviconLink = document.querySelector('link[rel="icon"]');
+    if (faviconLink) {
+        faviconLink.href = config.favicon;
+    }
+    
+    // Load the appropriate wordlist
+    loadWordlistForMode(mode, config);
+    
+    // Update manager status
+    updateManagerStatus();
+    
+    openNotification(`עברת למצב: ${config.title}`);
+}
+
+function loadWordlistForMode(mode, config) {
+    // Create a script element to load the wordlist
+    const existingScript = document.querySelector(`script[src*="wordlist-${mode}"]`);
+    if (existingScript) {
+        existingScript.remove();
+    }
+    
+    const script = document.createElement('script');
+    script.src = config.wordlistFile;
+    script.onload = function() {
+        // After loading, save the wordlist to the appropriate variable
+        if (mode === 'test') {
+            window.manualListOfWords = listOfWords.slice();
+        } else if (mode === 'mayabd') {
+            window.mayaBdListOfWords = listOfWords.slice();
+            window.manualListOfWords = listOfWords.slice(); // Use as manual list too
+        } else if (mode === 'ignite') {
+            window.igniteListOfWords = listOfWords.slice();
+            window.manualListOfWords = listOfWords.slice(); // Use as manual list too
+        }
+        
+        // Restore main wordlist
+        listOfWords = window.mainListOfWords;
+        
+        console.log(`[WORDLE_SYNC] Loaded ${mode} wordlist, length:`, window.manualListOfWords.length);
+        
+        // If in manual mode, reset to first word of new list
+        if (manualMode) {
+            manualWordIndex = 0;
+            pickedWord = window.manualListOfWords[0];
+            numOfWordale = 0;
+            
+            // Update Firebase with new index
+            if (window.setSharedManualWordIndex) {
+                window.setSharedManualWordIndex(0);
+            }
+            
+            // Reset game state
+            resetGameForNewWord();
+            updateManagerStatus();
+        }
+    };
+    
+    document.head.appendChild(script);
 }
 
 function switchToAutoMode() {
@@ -1449,10 +1570,6 @@ function switchToAutoMode() {
     // Show timer
     const timerLabel = document.getElementById('timerWithLabel');
     if (timerLabel) timerLabel.style.display = 'flex';
-    
-    // Update mode indicator
-    const modeIndicator = document.getElementById('modeIndicator');
-    if (modeIndicator) modeIndicator.textContent = 'A';
     
     // Reset game state
     resetGameForNewWord();

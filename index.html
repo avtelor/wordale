@@ -14,9 +14,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Assistant&family=Secular+One&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/x-icon" href="wordale-favicon-new.png">
-  <meta property="og:image" content="wordale-favicon-new.png">
-  <meta property="twitter:image" content="wordale-favicon-new.png">
+  <link rel="icon" type="image/x-icon" href="wordale-favicon.png">
+  <meta property="og:image" content="wordale-favicon.png">
+  <meta property="twitter:image" content="wordale-favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <meta http-equiv='cache-control' content='no-cache'> 
   <meta http-equiv='expires' content='0'> 
@@ -307,7 +307,7 @@ console.log(countPlayersPerDay());
           </div>
       </div>
       <div>
-          <img src="wordale-favicon-new.png" ondblclick="openManagerPage()" style="cursor: pointer;" title="לחץ פעמיים לפתיחת דף ניהול">
+          <img src="wordale-favicon.png" ondblclick="openManagerPage()" style="cursor: pointer;" title="לחץ פעמיים לפתיחת דף ניהול">
       </div>
   </div>
 </head>
@@ -946,12 +946,34 @@ if (event.target == modal) {
         <!-- Manager Controls Phase -->
         <div id="managerControls" style="display: none;">
           <h2>דף ניהול</h2>
+          
+          <!-- Game Mode Selection -->
+          <div style="margin: 20px 0; border: 2px solid #ddd; border-radius: 12px; padding: 15px;">
+            <h3>בחירת מצב משחק</h3>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="gameMode" value="test" onchange="changeGameMode('test')" checked>
+                <span>בדיקה (Test Mode)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="gameMode" value="mayabd" onchange="changeGameMode('mayabd')">
+                <span>מאיהוורדל (Maya BD)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="gameMode" value="ignite" onchange="changeGameMode('ignite')">
+                <span>Ignite Wordle</span>
+              </label>
+            </div>
+          </div>
+          
+          <!-- Current Status -->
           <div style="margin: 20px 0;">
             <p>מצב נוכחי: <span id="currentMode">?</span></p>
             <p>מילה נוכחית: <span id="currentWord">?</span></p>
             <p>אינדקס מילה: <span id="currentIndex">?</span></p>
           </div>
           
+          <!-- Manual Mode Controls -->
           <div style="margin: 20px 0;">
             <button onclick="moveToNextWordFromManager()" style="background-color: rgb(98, 159, 91); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 5px;">מילה הבאה</button>
             <br>
