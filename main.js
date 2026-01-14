@@ -111,6 +111,9 @@ if (manualMode) {
                 console.log('[WORDLE_SYNC] *** ORIGINAL INIT *** Using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
                 console.log('[WORDLE_SYNC] This may conflict with game mode restoration!');
                 
+                // Update debug display
+                setTimeout(() => updateDebugInfo('original-init'), 200);
+                
                 // Now that we have the correct word from Firebase, load user data for this word
                 // Only on initial page load - not when syncing to new word
                 // Also skip if game mode restoration is handling this
@@ -1612,6 +1615,9 @@ function loadWordlistForMode(mode, config) {
                         localStorage.setItem('manualWordIndex', manualWordIndex.toString());
                         localStorage.setItem('currentPickedWord', pickedWord);
                         
+                        // Update debug display
+                        updateDebugInfo('firebase-word');
+                        
                         // Update manager and load data
                         if (typeof updateManagerStatus === 'function') {
                             updateManagerStatus();
@@ -1649,6 +1655,9 @@ function loadWordlistForMode(mode, config) {
                                 localStorage.setItem('manualWordIndex', manualWordIndex.toString());
                                 localStorage.setItem('currentPickedWord', pickedWord);
                                 
+                                // Update debug display
+                                updateDebugInfo('firebase-index');
+                                
                                 // Update manager and load data
                                 if (typeof updateManagerStatus === 'function') {
                                     updateManagerStatus();
@@ -1682,6 +1691,9 @@ function loadWordlistForMode(mode, config) {
                     numOfWordale = manualWordIndex;
                     console.log(`[WORDLE_SYNC] Using localStorage index: "${pickedWord}"`);
                 }
+                
+                // Update debug display
+                updateDebugInfo('localStorage-fallback');
             }
         }
     };
@@ -1787,6 +1799,24 @@ function moveToNextWord() {
 
 //loadUserData();
 
+// DEBUG: Function to update debug display
+function updateDebugInfo(source = 'unknown') {
+    const currentTime = new Date().toLocaleTimeString();
+    try {
+        document.getElementById('currentTargetWord').textContent = pickedWord || '?';
+        document.getElementById('currentWordIndex').textContent = manualWordIndex || '?';
+        document.getElementById('currentGameMode').textContent = localStorage.getItem('gameMode') || '?';
+        document.getElementById('currentManualMode').textContent = manualMode ? 'true' : 'false';
+        document.getElementById('firebaseWord').textContent = localStorage.getItem('currentPickedWord') || '?';
+        document.getElementById('lastUpdate').textContent = `${currentTime} (${source})`;
+    } catch (e) {
+        // Debug elements might not be ready yet
+    }
+}
+
+// Make debug function globally available
+window.updateDebugInfo = updateDebugInfo;
+
 // Verification check - compare stored word with what should be the current word
 console.log('[WORDLE_SYNC] ===== PAGE LOAD VERIFICATION =====');
 console.log('[WORDLE_SYNC] manualMode:', manualMode);
@@ -1795,6 +1825,9 @@ console.log('[WORDLE_SYNC] manualWordIndex from localStorage:', localStorage.get
 console.log('[WORDLE_SYNC] gameMode from localStorage:', localStorage.getItem('gameMode'));
 console.log('[WORDLE_SYNC] Current pickedWord variable:', pickedWord);
 console.log('[WORDLE_SYNC] ===== END VERIFICATION =====');
+
+// Update debug display on page load
+setTimeout(() => updateDebugInfo('page-load'), 100);
 
 // Check if there's a pending game mode to apply (from page load)
 if (window.pendingGameMode) {

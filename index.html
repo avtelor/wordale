@@ -364,6 +364,16 @@ console.log(countPlayersPerDay());
 
   <div id="notify">
   </div>
+  <!-- DEBUG: Show current target word -->
+  <div id="debugInfo" style="position: fixed; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 10px; border: 2px solid red; font-family: monospace; font-size: 12px; z-index: 9999;">
+    <div><strong>DEBUG INFO:</strong></div>
+    <div>Target Word: <span id="currentTargetWord">?</span></div>
+    <div>Word Index: <span id="currentWordIndex">?</span></div>
+    <div>Game Mode: <span id="currentGameMode">?</span></div>
+    <div>Manual Mode: <span id="currentManualMode">?</span></div>
+    <div>Firebase Word: <span id="firebaseWord">?</span></div>
+    <div>Last Update: <span id="lastUpdate">?</span></div>
+  </div>
   <div id="notify2">
       <div id="timerWithLabel">
         <div id="timer"></div>
