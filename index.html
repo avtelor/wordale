@@ -228,13 +228,10 @@ console.log(countPlayersPerDay());
       setTimeout(function() {
           const manualMode = localStorage.getItem('manualMode') === 'true';
           const timerLabel = document.getElementById('timerWithLabel');
-          const modeIndicator = document.getElementById('modeIndicator');
           if (manualMode) {
               if (timerLabel) timerLabel.style.display = 'none';
-              if (modeIndicator) modeIndicator.textContent = 'M';
           } else {
               if (timerLabel) timerLabel.style.display = 'flex';
-              if (modeIndicator) modeIndicator.textContent = 'A';
           }
       }, 100);
 
@@ -310,11 +307,7 @@ console.log(countPlayersPerDay());
           </div>
       </div>
       <div>
-          <img src="wordale-favicon-new.png">
-      </div>
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <button onclick="showPasswordPrompt()" onkeydown="if(event.key==='Enter'){event.preventDefault(); event.stopPropagation(); return false;}" style="border: none; background-color: transparent; font-family: 'Secular One'; font-size: clamp(0.5vw,5vw,15px); cursor: pointer;" tabindex="-1" onfocus="this.blur()">מילה הבאה</button>
-          <span id="modeIndicator" style="font-family: 'Secular One'; font-size: clamp(8px, 2vw, 12px); font-weight: bold; color: rgb(0, 112, 112);">?</span>
+          <img src="wordale-favicon-new.png" ondblclick="openManagerPage()" style="cursor: pointer;" title="לחץ פעמיים לפתיחת דף ניהול">
       </div>
   </div>
 </head>
@@ -933,6 +926,38 @@ if (event.target == modal) {
         <button onclick="closeStats()" id="closeStats">✖</button>
         <h3 id="statsTitle">:התפלגות ניחושים להיום</h3>
         <div id="statsTable"></div>
+      </div>
+    </div>
+
+  <!-- Manager Page Modal -->
+  <div id="managerModal" onclick="if(event.target===this) closeManagerPage()" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+      <div id="managerContent" style="background-color: #ffffff; margin: 10% auto; padding: 30px; border-radius: 16px; max-width: 400px; box-shadow: 0 0 15px rgba(0,0,0,0.3); text-align: center; direction: rtl; position: relative; font-family: 'Assistant', sans-serif;">
+        <span onclick="closeManagerPage()" style="position: absolute; top: 15px; left: 20px; font-size: 28px; font-weight: bold; color: #888; cursor: pointer; transition: color 0.3s;">&times;</span>
+        
+        <!-- Password Input Phase -->
+        <div id="passwordPhase">
+          <h2>דף ניהול</h2>
+          <p>הזן סיסמה לכניסה לדף הניהול:</p>
+          <input type="password" id="managerPassword" placeholder="הזן סיסמה" onkeydown="if(event.key==='Enter') checkManagerPassword()" style="padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; width: 200px; text-align: center;">
+          <br>
+          <button onclick="checkManagerPassword()" style="background-color: rgb(0, 112, 112); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px;">כניסה</button>
+        </div>
+
+        <!-- Manager Controls Phase -->
+        <div id="managerControls" style="display: none;">
+          <h2>דף ניהול</h2>
+          <div style="margin: 20px 0;">
+            <p>מצב נוכחי: <span id="currentMode">?</span></p>
+            <p>מילה נוכחית: <span id="currentWord">?</span></p>
+            <p>אינדקס מילה: <span id="currentIndex">?</span></p>
+          </div>
+          
+          <div style="margin: 20px 0;">
+            <button onclick="moveToNextWordFromManager()" style="background-color: rgb(98, 159, 91); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 5px;">מילה הבאה</button>
+            <br>
+            <button onclick="switchToAutoMode()" style="background-color: rgb(194, 170, 82); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 5px;">עבור למצב אוטומטי</button>
+          </div>
+        </div>
       </div>
     </div>
   <script src="hebwords.js"></script>

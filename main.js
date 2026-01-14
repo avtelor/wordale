@@ -1352,58 +1352,113 @@ function setupManualModeListener() {
     }
 }
 
-function showPasswordPrompt() {
-    const password = prompt("הזן סיסמה בת 4 ספרות כדי לעבור למילה הבאה:");
+function openManagerPage() {
+    const modal = document.getElementById('managerModal');
+    const passwordPhase = document.getElementById('passwordPhase');
+    const managerControls = document.getElementById('managerControls');
+    const passwordInput = document.getElementById('managerPassword');
     
-    if (password === "9090") {
-        // Switch back to automatic mode
-        manualMode = false;
-        localStorage.setItem('manualMode', 'false');
+    // Reset to password phase
+    passwordPhase.style.display = 'block';
+    managerControls.style.display = 'none';
+    passwordInput.value = '';
+    
+    modal.style.display = 'block';
+    
+    // Focus on password input
+    setTimeout(() => {
+        passwordInput.focus();
+    }, 100);
+}
+
+function closeManagerPage() {
+    document.getElementById('managerModal').style.display = 'none';
+}
+
+function checkManagerPassword() {
+    const password = document.getElementById('managerPassword').value;
+    
+    if (password === MANUAL_MODE_PASSWORD) {
+        // Correct password - show manager controls
+        document.getElementById('passwordPhase').style.display = 'none';
+        document.getElementById('managerControls').style.display = 'block';
         
-        // Reset to daily word
-        pickedWord = pickWord();
-        
-        // Show timer
-        const timerLabel = document.getElementById('timerWithLabel');
-        if (timerLabel) timerLabel.style.display = 'flex';
-        
-        // Update mode indicator
-        const modeIndicator = document.getElementById('modeIndicator');
-        if (modeIndicator) modeIndicator.textContent = 'A';
-        
-        // Reset game state
-        resetGameForNewWord();
-        
-        openNotification('חזרה למצב אוטומטי');
-    } else if (password === MANUAL_MODE_PASSWORD) {
         // Ensure manual mode is enabled
         if (!manualMode) {
-            manualMode = true;
-            localStorage.setItem('manualMode', 'true');
-            // Initialize manual mode if needed
-            const manualWordList = window.manualListOfWords || [];
-            if (!localStorage.getItem('manualWordIndex') && manualWordList.length > 0) {
-                manualWordIndex = 0;
-                localStorage.setItem('manualWordIndex', '0');
-                pickedWord = manualWordList[0];
-                numOfWordale = 0;
-            }
-            // Hide timer in manual mode
-            const timerLabel = document.getElementById('timerWithLabel');
-            if (timerLabel) timerLabel.style.display = 'none';
-            
-            // Update mode indicator
-            const modeIndicator = document.getElementById('modeIndicator');
-            if (modeIndicator) modeIndicator.textContent = 'M';
-            
-            // Set up Firebase listener for manual mode (since we're entering it now)
-            console.log('[WORDLE_SYNC] Entering manual mode, setting up Firebase listener...');
-            setupManualModeListener();
+            enableManualMode();
         }
-        moveToNextWord();
-    } else if (password !== null) {
+        
+        updateManagerStatus();
+    } else if (password !== '') {
         openNotification('סיסמה שגויה');
+        document.getElementById('managerPassword').value = '';
     }
+}
+
+function enableManualMode() {
+    manualMode = true;
+    localStorage.setItem('manualMode', 'true');
+    
+    // Initialize manual mode if needed
+    const manualWordList = window.manualListOfWords || [];
+    if (!localStorage.getItem('manualWordIndex') && manualWordList.length > 0) {
+        manualWordIndex = 0;
+        localStorage.setItem('manualWordIndex', '0');
+        pickedWord = manualWordList[0];
+        numOfWordale = 0;
+    }
+    
+    // Hide timer in manual mode
+    const timerLabel = document.getElementById('timerWithLabel');
+    if (timerLabel) timerLabel.style.display = 'none';
+    
+    // Update mode indicator
+    const modeIndicator = document.getElementById('modeIndicator');
+    if (modeIndicator) modeIndicator.textContent = 'M';
+    
+    // Set up Firebase listener for manual mode
+    console.log('[WORDLE_SYNC] Entering manual mode via manager, setting up Firebase listener...');
+    setupManualModeListener();
+}
+
+function updateManagerStatus() {
+    // Update current status display
+    document.getElementById('currentMode').textContent = manualMode ? 'מצב ידני' : 'מצב אוטומטי';
+    document.getElementById('currentWord').textContent = pickedWord || '?';
+    document.getElementById('currentIndex').textContent = manualWordIndex + 1;
+}
+
+function moveToNextWordFromManager() {
+    if (manualMode) {
+        moveToNextWord();
+        updateManagerStatus();
+        openNotification('עברת למילה הבאה');
+    } else {
+        openNotification('יש להיות במצב ידני');
+    }
+}
+
+function switchToAutoMode() {
+    // Switch back to automatic mode
+    manualMode = false;
+    localStorage.setItem('manualMode', 'false');
+    
+    // Reset to daily word
+    pickedWord = pickWord();
+    
+    // Show timer
+    const timerLabel = document.getElementById('timerWithLabel');
+    if (timerLabel) timerLabel.style.display = 'flex';
+    
+    // Update mode indicator
+    const modeIndicator = document.getElementById('modeIndicator');
+    if (modeIndicator) modeIndicator.textContent = 'A';
+    
+    // Reset game state
+    resetGameForNewWord();
+    
+    closeManagerPage();
+    openNotification('עברת למצב אוטומטי');
 }
 
 function moveToNextWord() {
