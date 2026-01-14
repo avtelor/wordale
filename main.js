@@ -499,7 +499,15 @@ let greenIndices = [];
 let yellowIndices = [];
 let greyIndices = [];
 let usedYellowIndices = [];
-console.log(pickedWord);
+
+// COLORING_DEBUG: Show exactly what word is being used for comparison
+console.log('[COLORING_DEBUG] ===== WORD COMPARISON START =====');
+console.log('[COLORING_DEBUG] User guess:', currentWord);
+console.log('[COLORING_DEBUG] Target word (pickedWord):', pickedWord, typeof pickedWord);
+console.log('[COLORING_DEBUG] manualWordIndex:', manualWordIndex);
+console.log('[COLORING_DEBUG] Current time:', new Date().toLocaleTimeString());
+console.log('[COLORING_DEBUG] ==========================================');
+
 for (i = 0; i <= 4; i++) {
     //if letter exists in place:
     if (compareLetters(currentWord[i], pickedWord[i])) {
@@ -1635,13 +1643,32 @@ function loadWordlistForMode(mode, config) {
                             updateManagerStatus();
                         }
                         
-                        setTimeout(() => {
-                            console.log(`[WORDLE_SYNC] Loading user data for stored word "${pickedWord}"`);
-                            if (!window.hasInitialLoadCompleted) {
-                                loadUserData();
-                                window.hasInitialLoadCompleted = true;
-                            }
-                        }, 200);
+                        // CLEAR conflicting saved data and start fresh
+                        console.log(`[WORDLE_SYNC] Target word is now "${pickedWord}" - clearing conflicting saved data`);
+                        
+                        // Clear saved progress for all possible word indices to prevent conflicts
+                        for (let i = 0; i < 10; i++) {
+                            localStorage.removeItem(`userDate_manual_${i}`);
+                            localStorage.removeItem(`answersColors_manual_${i}`);
+                            localStorage.removeItem(`answersLetters_manual_${i}`);
+                        }
+                        
+                        // Reset game state for clean start
+                        win = false;
+                        endOfGameToday = false;
+                        rowCount = 1;
+                        wordCount = 0;
+                        currentWord = '';
+                        answersColors = [];
+                        answersLetters = [];
+                        
+                        // Clear the UI
+                        if (typeof resetGameForNewWord === 'function') {
+                            resetGameForNewWord();
+                        }
+                        
+                        console.log(`[WORDLE_SYNC] Cleared saved data - fresh start with word "${pickedWord}"`);
+                        window.hasInitialLoadCompleted = true;
                         
                     } else {
                         // No valid shared word found - fall back to index-based approach
