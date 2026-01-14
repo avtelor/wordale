@@ -1460,7 +1460,18 @@ function changeGameMode(mode) {
     // Store the selected mode
     localStorage.setItem('gameMode', mode);
     
-    // Define mode configurations
+    // Apply the mode changes
+    applyGameMode(mode);
+    
+    // Update manager status if available
+    if (typeof updateManagerStatus === 'function') {
+        updateManagerStatus();
+    }
+    
+    openNotification(`עברת למצב: ${getModeConfig(mode).title}`);
+}
+
+function getModeConfig(mode) {
     const modeConfigs = {
         'test': {
             favicon: 'wordale-favicon.png',
@@ -1482,8 +1493,13 @@ function changeGameMode(mode) {
         }
     };
     
-    const config = modeConfigs[mode];
-    if (!config) return;
+    return modeConfigs[mode] || modeConfigs['test'];
+}
+
+function applyGameMode(mode) {
+    console.log('[WORDLE_SYNC] Applying game mode:', mode);
+    
+    const config = getModeConfig(mode);
     
     // Update favicon
     const faviconImg = document.querySelector('img[src*="wordale-favicon"]');
@@ -1506,12 +1522,10 @@ function changeGameMode(mode) {
     
     // Load the appropriate wordlist
     loadWordlistForMode(mode, config);
-    
-    // Update manager status
-    updateManagerStatus();
-    
-    openNotification(`עברת למצב: ${config.title}`);
 }
+
+// Make applyGameMode available globally
+window.applyGameMode = applyGameMode;
 
 function loadWordlistForMode(mode, config) {
     // Create a script element to load the wordlist
@@ -1640,6 +1654,15 @@ function moveToNextWord() {
 }
 
 //loadUserData();
+
+// Check if there's a pending game mode to apply (from page load)
+if (window.pendingGameMode) {
+    console.log('[WORDLE_SYNC] Applying pending game mode:', window.pendingGameMode);
+    setTimeout(() => {
+        applyGameMode(window.pendingGameMode);
+        window.pendingGameMode = null; // Clear the pending mode
+    }, 500); // Small delay to ensure DOM is ready
+}
 
 document.addEventListener("visibilitychange",function(){
 //document.getElementById(`tile${rowCount}1`)

@@ -224,8 +224,21 @@ console.log(countPlayersPerDay());
       // Don't load user data automatically - let Firebase synchronization happen first
       // User data will be loaded after Firebase sync is complete
       
-      // Initialize manual mode UI
+      // Initialize game mode and UI
       setTimeout(function() {
+          // Check and restore saved game mode
+          const savedGameMode = localStorage.getItem('gameMode') || 'test';
+          console.log('[WORDLE_SYNC] Restoring saved game mode:', savedGameMode);
+          
+          // Apply the saved game mode
+          if (window.applyGameMode) {
+              window.applyGameMode(savedGameMode);
+          } else {
+              // Store function for later execution when main.js loads
+              window.pendingGameMode = savedGameMode;
+          }
+          
+          // Initialize manual mode UI
           const manualMode = localStorage.getItem('manualMode') === 'true';
           const timerLabel = document.getElementById('timerWithLabel');
           if (manualMode) {
