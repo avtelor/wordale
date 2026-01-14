@@ -97,14 +97,9 @@ if (manualMode) {
                 // Make sure index is valid
                 if (manualWordIndex < 0 || manualWordIndex >= manualWordList.length) {
                     manualWordIndex = 0;
-                    if (window.setSharedManualWordIndex) {
-                        window.setSharedManualWordIndex(0);
-                    }
+                    console.log('[WORDLE_SYNC] Original init - index out of bounds, reset to 0 but NOT updating Firebase');
                 } else {
-                    // Ensure Firebase has the correct value (in case it was out of sync)
-                    if (window.setSharedManualWordIndex) {
-                        window.setSharedManualWordIndex(manualWordIndex);
-                    }
+                    console.log('[WORDLE_SYNC] Original init - index valid, NOT updating Firebase to prevent conflicts');
                 }
                 // WORD_DEBUG: Original initialization assignment
                 console.log('[WORD_DEBUG] ORIGINAL INIT - BEFORE:');
@@ -1458,7 +1453,7 @@ function updateManagerStatus() {
     const gameModeText = {
         'test': 'בדיקה (Test)',
         'mayabd': 'מאיהוורדל (Maya BD)', 
-        'ignite': 'Ignite Wordle'
+        'ignite': 'Wordle'
     };
     
     document.getElementById('currentMode').textContent = manualMode ? 

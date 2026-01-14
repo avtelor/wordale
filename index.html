@@ -45,6 +45,10 @@
     
       // זמינות גלובלית לפונקציות דרך window (כדי שתוכל לקרוא להן מתוך main.js)
       
+      // CRITICAL: Set flag IMMEDIATELY to prevent duplicate initialization
+      window.skipInitialFirebaseSync = true;
+      console.log('[WORDLE_SYNC] Set skipInitialFirebaseSync = true (early)');
+      
       // Functions for shared manual word index AND current word
       window.getSharedManualWordIndex = function(callback) {
         console.log('[WORDLE_SYNC] Getting shared word index from Firebase...');
@@ -250,10 +254,6 @@ console.log(countPlayersPerDay());
   
       // Don't load user data automatically - let Firebase synchronization happen first
       // User data will be loaded after Firebase sync is complete
-      
-      // Set flag IMMEDIATELY to prevent conflicts
-      window.skipInitialFirebaseSync = true;
-      console.log('[WORDLE_SYNC] Set skipInitialFirebaseSync = true');
       
       // Initialize game mode and UI
       setTimeout(function() {
