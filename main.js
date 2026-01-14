@@ -254,6 +254,8 @@ if (manualMode) {
             return;
         }
         
+        console.log('[WORDLE_SYNC] skipInitialFirebaseSync is false, proceeding with original init');
+        
         // Also skip if we don't have the correct manual wordlist yet (mode restoration will handle this)
         const manualWordList = window.manualListOfWords;
         if (!manualWordList || manualWordList.length === 0 || manualWordList.length > 100) {
@@ -1852,6 +1854,7 @@ console.log('[WORDLE_SYNC] currentPickedWord from localStorage:', localStorage.g
 console.log('[WORDLE_SYNC] manualWordIndex from localStorage:', localStorage.getItem('manualWordIndex'));
 console.log('[WORDLE_SYNC] gameMode from localStorage:', localStorage.getItem('gameMode'));
 console.log('[WORDLE_SYNC] Current pickedWord variable:', pickedWord);
+console.log('[WORDLE_SYNC] skipInitialFirebaseSync flag:', window.skipInitialFirebaseSync);
 console.log('[WORDLE_SYNC] ===== END VERIFICATION =====');
 
 // Update debug display on page load
