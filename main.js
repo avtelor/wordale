@@ -233,6 +233,12 @@ if (manualMode) {
     let attempts = 0;
     const maxAttempts = 20;
     function tryInitializeManualMode() {
+        // Skip if game mode switching is handling Firebase sync
+        if (window.skipInitialFirebaseSync) {
+            console.log('[WORDLE_SYNC] Skipping initial Firebase sync - game mode switching will handle it');
+            return;
+        }
+        
         attempts++;
         if (window.getSharedManualWordIndex) {
             console.log('[WORDLE_SYNC] Firebase functions available after', attempts, 'attempts');
@@ -1574,24 +1580,39 @@ function loadWordlistForMode(mode, config) {
                 if (timerLabel) timerLabel.style.display = 'none';
             }
             
-            // Get current word index from Firebase or localStorage
-            const savedIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
-            manualWordIndex = Math.max(0, Math.min(savedIndex, window.manualListOfWords.length - 1));
+            // DON'T set pickedWord immediately - wait for Firebase sync
+            console.log(`[WORDLE_SYNC] Mode ${mode} wordlist loaded, waiting for Firebase sync before setting word...`);
             
-            // Set the picked word from the mode-specific list
-            pickedWord = window.manualListOfWords[manualWordIndex];
-            numOfWordale = manualWordIndex;
-            
-            console.log(`[WORDLE_SYNC] Set pickedWord to: "${pickedWord}" (index ${manualWordIndex})`);
-            
-            // Update Firebase with current index if available
-            if (window.setSharedManualWordIndex) {
-                window.setSharedManualWordIndex(manualWordIndex);
-            }
-            
-            // Update manager status if function exists
-            if (typeof updateManagerStatus === 'function') {
-                updateManagerStatus();
+            // Trigger Firebase sync to get the correct shared word index
+            if (window.getSharedManualWordIndex) {
+                window.getSharedManualWordIndex(function(sharedIndex) {
+                    console.log(`[WORDLE_SYNC] Got shared index ${sharedIndex} for mode ${mode}`);
+                    manualWordIndex = Math.max(0, Math.min(sharedIndex, window.manualListOfWords.length - 1));
+                    
+                    // NOW set the picked word from the correct index
+                    pickedWord = window.manualListOfWords[manualWordIndex];
+                    numOfWordale = manualWordIndex;
+                    
+                    console.log(`[WORDLE_SYNC] Set pickedWord to: "${pickedWord}" (index ${manualWordIndex}) for mode ${mode}`);
+                    
+                    // Update manager status if function exists
+                    if (typeof updateManagerStatus === 'function') {
+                        updateManagerStatus();
+                    }
+                });
+            } else {
+                // Fallback if Firebase not available - use localStorage
+                const savedIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
+                manualWordIndex = Math.max(0, Math.min(savedIndex, window.manualListOfWords.length - 1));
+                
+                pickedWord = window.manualListOfWords[manualWordIndex];
+                numOfWordale = manualWordIndex;
+                
+                console.log(`[WORDLE_SYNC] Firebase not available, using localStorage index ${manualWordIndex}: "${pickedWord}"`);
+                
+                if (typeof updateManagerStatus === 'function') {
+                    updateManagerStatus();
+                }
             }
         }
     };
@@ -1688,6 +1709,8 @@ function moveToNextWord() {
 // Check if there's a pending game mode to apply (from page load)
 if (window.pendingGameMode) {
     console.log('[WORDLE_SYNC] Applying pending game mode:', window.pendingGameMode);
+    // Flag to prevent duplicate Firebase sync from main initialization
+    window.skipInitialFirebaseSync = true;
     setTimeout(() => {
         applyGameMode(window.pendingGameMode);
         window.pendingGameMode = null; // Clear the pending mode
