@@ -108,15 +108,19 @@ if (manualMode) {
                 }
                 pickedWord = manualWordList[manualWordIndex];
                 numOfWordale = manualWordIndex;
-                console.log('[WORDLE_SYNC] Using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
+                console.log('[WORDLE_SYNC] *** ORIGINAL INIT *** Using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
+                console.log('[WORDLE_SYNC] This may conflict with game mode restoration!');
                 
                 // Now that we have the correct word from Firebase, load user data for this word
                 // Only on initial page load - not when syncing to new word
-                if (!window.hasInitialLoadCompleted) {
+                // Also skip if game mode restoration is handling this
+                if (!window.hasInitialLoadCompleted && !window.skipInitialFirebaseSync) {
                     setTimeout(function() {
                         loadUserData();
                         window.hasInitialLoadCompleted = true;
                     }, 500);
+                } else if (window.skipInitialFirebaseSync) {
+                    console.log('[WORDLE_SYNC] Skipping loadUserData in original init - game mode restoration will handle it');
                 }
                 
                 // Set up listener for shared word index changes (after initial load)
@@ -236,6 +240,13 @@ if (manualMode) {
         // Skip if game mode switching is handling Firebase sync
         if (window.skipInitialFirebaseSync) {
             console.log('[WORDLE_SYNC] Skipping initial Firebase sync - game mode switching will handle it');
+            return;
+        }
+        
+        // Also skip if we don't have the correct manual wordlist yet (mode restoration will handle this)
+        const manualWordList = window.manualListOfWords;
+        if (!manualWordList || manualWordList.length === 0 || manualWordList.length > 100) {
+            console.log('[WORDLE_SYNC] Manual wordlist not ready or incorrect, deferring to game mode restoration');
             return;
         }
         
@@ -958,6 +969,7 @@ function loadUserData() {
         // In manual mode, load data for the current word index
         const storageKey = `manual_${manualWordIndex}`;
         let savedDateString = localStorage.getItem(`userDate_${storageKey}`);
+        console.log(`[WORDLE_SYNC] loadUserData called - manualWordIndex: ${manualWordIndex}, pickedWord: "${pickedWord}", storageKey: "${storageKey}"`);
         if (!savedDateString) {
             console.log('loadUserData skipped - no saved data for manual word', manualWordIndex);
             return;
@@ -1586,19 +1598,46 @@ function loadWordlistForMode(mode, config) {
             // Trigger Firebase sync to get the correct shared word index
             if (window.getSharedManualWordIndex) {
                 window.getSharedManualWordIndex(function(sharedIndex) {
+                    console.log(`[WORDLE_SYNC] ===== FIREBASE SYNC START =====`);
                     console.log(`[WORDLE_SYNC] Got shared index ${sharedIndex} for mode ${mode}`);
+                    console.log(`[WORDLE_SYNC] Available words in ${mode} list:`, window.manualListOfWords);
+                    
                     manualWordIndex = Math.max(0, Math.min(sharedIndex, window.manualListOfWords.length - 1));
                     
                     // NOW set the picked word from the correct index
                     pickedWord = window.manualListOfWords[manualWordIndex];
                     numOfWordale = manualWordIndex;
                     
-                    console.log(`[WORDLE_SYNC] Set pickedWord to: "${pickedWord}" (index ${manualWordIndex}) for mode ${mode}`);
+                    console.log(`[WORDLE_SYNC] *** FINAL WORD SET *** pickedWord: "${pickedWord}" (index ${manualWordIndex}) for mode ${mode}`);
+                    console.log(`[WORDLE_SYNC] Word verification: index ${manualWordIndex} -> word "${pickedWord}" from list:`, window.manualListOfWords.slice(0, 5), '...');
+                    console.log(`[WORDLE_SYNC] Storing manualWordIndex ${manualWordIndex} to localStorage`);
+                    console.log(`[WORDLE_SYNC] ===== FIREBASE SYNC END =====`);
+                    
+                    // Update localStorage to ensure consistency
+                    localStorage.setItem('manualWordIndex', manualWordIndex.toString());
+                    
+                    // CRITICAL: Also save the current picked word to verify consistency
+                    localStorage.setItem('currentPickedWord', pickedWord);
+                    
+                    // Double-check that Firebase has the correct value by re-setting it
+                    if (window.setSharedManualWordIndex) {
+                        console.log(`[WORDLE_SYNC] Confirming Firebase has correct index ${manualWordIndex}`);
+                        window.setSharedManualWordIndex(manualWordIndex);
+                    }
                     
                     // Update manager status if function exists
                     if (typeof updateManagerStatus === 'function') {
                         updateManagerStatus();
                     }
+                    
+                    // Load saved progress for THIS specific word index after setting the word
+                    setTimeout(() => {
+                        console.log(`[WORDLE_SYNC] Loading user data for word index ${manualWordIndex} ("${pickedWord}")`);
+                        if (!window.hasInitialLoadCompleted) {
+                            loadUserData();
+                            window.hasInitialLoadCompleted = true;
+                        }
+                    }, 200);
                 });
             } else {
                 // Fallback if Firebase not available - use localStorage
@@ -1608,11 +1647,19 @@ function loadWordlistForMode(mode, config) {
                 pickedWord = window.manualListOfWords[manualWordIndex];
                 numOfWordale = manualWordIndex;
                 
-                console.log(`[WORDLE_SYNC] Firebase not available, using localStorage index ${manualWordIndex}: "${pickedWord}"`);
+                console.log(`[WORDLE_SYNC] *** FALLBACK WORD SET *** Firebase not available, using localStorage index ${manualWordIndex}: "${pickedWord}"`);
                 
                 if (typeof updateManagerStatus === 'function') {
                     updateManagerStatus();
                 }
+                
+                // Load saved progress for THIS specific word index
+                setTimeout(() => {
+                    if (!window.hasInitialLoadCompleted) {
+                        loadUserData();
+                        window.hasInitialLoadCompleted = true;
+                    }
+                }, 200);
             }
         }
     };
@@ -1706,11 +1753,20 @@ function moveToNextWord() {
 
 //loadUserData();
 
+// Verification check - compare stored word with what should be the current word
+console.log('[WORDLE_SYNC] ===== PAGE LOAD VERIFICATION =====');
+console.log('[WORDLE_SYNC] manualMode:', manualMode);
+console.log('[WORDLE_SYNC] currentPickedWord from localStorage:', localStorage.getItem('currentPickedWord'));
+console.log('[WORDLE_SYNC] manualWordIndex from localStorage:', localStorage.getItem('manualWordIndex'));
+console.log('[WORDLE_SYNC] gameMode from localStorage:', localStorage.getItem('gameMode'));
+console.log('[WORDLE_SYNC] Current pickedWord variable:', pickedWord);
+console.log('[WORDLE_SYNC] ===== END VERIFICATION =====');
+
 // Check if there's a pending game mode to apply (from page load)
 if (window.pendingGameMode) {
     console.log('[WORDLE_SYNC] Applying pending game mode:', window.pendingGameMode);
-    // Flag to prevent duplicate Firebase sync from main initialization
-    window.skipInitialFirebaseSync = true;
+    // Flag should already be set by index.html initialization
+    console.log('[WORDLE_SYNC] skipInitialFirebaseSync flag:', window.skipInitialFirebaseSync);
     setTimeout(() => {
         applyGameMode(window.pendingGameMode);
         window.pendingGameMode = null; // Clear the pending mode

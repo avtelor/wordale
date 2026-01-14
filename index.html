@@ -230,6 +230,9 @@ console.log(countPlayersPerDay());
           const savedGameMode = localStorage.getItem('gameMode') || 'test';
           console.log('[WORDLE_SYNC] Restoring saved game mode:', savedGameMode);
           
+          // Set flag BEFORE applying mode to prevent conflicts
+          window.skipInitialFirebaseSync = true;
+          
           // Apply the saved game mode
           if (window.applyGameMode) {
               window.applyGameMode(savedGameMode);
