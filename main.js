@@ -106,8 +106,18 @@ if (manualMode) {
                         window.setSharedManualWordIndex(manualWordIndex);
                     }
                 }
+                // DETAILED DEBUGGING
+                console.log('[WORDLE_SYNC] BEFORE ASSIGNMENT:');
+                console.log('  manualWordIndex:', manualWordIndex, typeof manualWordIndex);
+                console.log('  manualWordList:', manualWordList);
+                console.log('  manualWordList[manualWordIndex]:', manualWordList[manualWordIndex], typeof manualWordList[manualWordIndex]);
+                
                 pickedWord = manualWordList[manualWordIndex];
                 numOfWordale = manualWordIndex;
+                
+                console.log('[WORDLE_SYNC] AFTER ASSIGNMENT:');
+                console.log('  pickedWord:', pickedWord, typeof pickedWord);
+                console.log('  numOfWordale:', numOfWordale);
                 console.log('[WORDLE_SYNC] *** ORIGINAL INIT *** Using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
                 console.log('[WORDLE_SYNC] This may conflict with game mode restoration!');
                 
@@ -1605,10 +1615,18 @@ function loadWordlistForMode(mode, config) {
                 window.getSharedCurrentWord(function(sharedWord) {
                     if (sharedWord && window.manualListOfWords.includes(sharedWord)) {
                         // We have a valid shared word - use it directly
+                        console.log('[WORDLE_SYNC] FIREBASE WORD ASSIGNMENT:');
+                        console.log('  sharedWord:', sharedWord, typeof sharedWord);
+                        console.log('  window.manualListOfWords:', window.manualListOfWords);
+                        console.log('  indexOf result:', window.manualListOfWords.indexOf(sharedWord));
+                        
                         pickedWord = sharedWord;
                         manualWordIndex = window.manualListOfWords.indexOf(sharedWord);
                         numOfWordale = manualWordIndex;
                         
+                        console.log('[WORDLE_SYNC] AFTER FIREBASE ASSIGNMENT:');
+                        console.log('  pickedWord:', pickedWord, typeof pickedWord);
+                        console.log('  manualWordIndex:', manualWordIndex, typeof manualWordIndex);
                         console.log(`[WORDLE_SYNC] *** WORD FROM FIREBASE *** Using stored word: "${pickedWord}" (index ${manualWordIndex}) for mode ${mode}`);
                         
                         // Update localStorage
@@ -1641,9 +1659,16 @@ function loadWordlistForMode(mode, config) {
                                 manualWordIndex = Math.max(0, Math.min(sharedIndex, window.manualListOfWords.length - 1));
                                 
                                 // Set the picked word from the index
+                                console.log('[WORDLE_SYNC] INDEX-BASED ASSIGNMENT:');
+                                console.log('  manualWordIndex:', manualWordIndex, typeof manualWordIndex);
+                                console.log('  window.manualListOfWords:', window.manualListOfWords);
+                                console.log('  window.manualListOfWords[manualWordIndex]:', window.manualListOfWords[manualWordIndex], typeof window.manualListOfWords[manualWordIndex]);
+                                
                                 pickedWord = window.manualListOfWords[manualWordIndex];
                                 numOfWordale = manualWordIndex;
                                 
+                                console.log('[WORDLE_SYNC] AFTER INDEX ASSIGNMENT:');
+                                console.log('  pickedWord:', pickedWord, typeof pickedWord);
                                 console.log(`[WORDLE_SYNC] *** WORD FROM INDEX *** pickedWord: "${pickedWord}" (index ${manualWordIndex}) for mode ${mode}`);
                                 
                                 // Store the word directly in Firebase for future consistency
