@@ -1684,7 +1684,6 @@ function loadWordlistForMode(mode, config) {
                 }
             }
         }
-        }
     };
     
     script.onerror = function() {
@@ -1892,3 +1891,9 @@ document.getElementById('instructions').style.display = 'none';
 if (typeof sendWord === 'function') window.sendWord = sendWord;
 if (typeof eraseLetter === 'function') window.eraseLetter = eraseLetter;
 if (typeof eraseWord === 'function') window.eraseWord = eraseWord;
+if (typeof openManagerPage === 'function') window.openManagerPage = openManagerPage;
+if (typeof closeManagerPage === 'function') window.closeManagerPage = closeManagerPage;
+if (typeof checkManagerPassword === 'function') window.checkManagerPassword = checkManagerPassword;
+if (typeof changeGameMode === 'function') window.changeGameMode = changeGameMode;
+if (typeof moveToNextWordFromManager === 'function') window.moveToNextWordFromManager = moveToNextWordFromManager;
+if (typeof switchToAutoMode === 'function') window.switchToAutoMode = switchToAutoMode;
