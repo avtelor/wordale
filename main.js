@@ -183,6 +183,23 @@ if (manualMode) {
                                     return;
                                 }
                                 
+                                // CRITICAL: Don't reset if we have saved progress for this word
+                                const storageKey = `manual_${newIndex}`;
+                                const hasSavedProgress = localStorage.getItem(`answersLetters_${storageKey}`) && localStorage.getItem(`answersColors_${storageKey}`);
+                                if (hasSavedProgress) {
+                                    console.log('[WORDLE_SYNC] Found saved progress for word index', newIndex, '- skipping reset and loading saved data instead');
+                                    lastKnownIndex = newIndex;
+                                    manualWordIndex = newIndex;
+                                    const manualWordList = window.manualListOfWords || [];
+                                    if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
+                                        pickedWord = manualWordList[manualWordIndex];
+                                        numOfWordale = manualWordIndex;
+                                        // Load the saved progress instead of resetting
+                                        loadUserData();
+                                    }
+                                    return;
+                                }
+                                
                                 const manualWordList = window.manualListOfWords || [];
                                 
                                 console.log('[WORDLE_SYNC] SYNCHRONIZING: Word changed - resetting to new word. New index:', newIndex);
@@ -1381,6 +1398,23 @@ function setupManualModeListener() {
                 if (window.preventResets && currentWord && currentWord.length > 0) {
                     console.log('[WORDLE_SYNC] User is actively typing - deferring reset. Will sync index but wait for user to finish.');
                     lastKnownIndex = newIndex;
+                    return;
+                }
+                
+                // CRITICAL: Don't reset if we have saved progress for this word
+                const storageKey = `manual_${newIndex}`;
+                const hasSavedProgress = localStorage.getItem(`answersLetters_${storageKey}`) && localStorage.getItem(`answersColors_${storageKey}`);
+                if (hasSavedProgress) {
+                    console.log('[WORDLE_SYNC] Found saved progress for word index', newIndex, '- skipping reset and loading saved data instead');
+                    lastKnownIndex = newIndex;
+                    manualWordIndex = newIndex;
+                    const manualWordList = window.manualListOfWords || [];
+                    if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
+                        pickedWord = manualWordList[manualWordIndex];
+                        numOfWordale = manualWordIndex;
+                        // Load the saved progress instead of resetting
+                        loadUserData();
+                    }
                     return;
                 }
                 
