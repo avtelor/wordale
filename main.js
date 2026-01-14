@@ -106,20 +106,18 @@ if (manualMode) {
                         window.setSharedManualWordIndex(manualWordIndex);
                     }
                 }
-                // DETAILED DEBUGGING
-                console.log('[WORDLE_SYNC] BEFORE ASSIGNMENT:');
-                console.log('  manualWordIndex:', manualWordIndex, typeof manualWordIndex);
-                console.log('  manualWordList:', manualWordList);
-                console.log('  manualWordList[manualWordIndex]:', manualWordList[manualWordIndex], typeof manualWordList[manualWordIndex]);
+                // WORD_DEBUG: Original initialization assignment
+                console.log('[WORD_DEBUG] ORIGINAL INIT - BEFORE:');
+                console.log('[WORD_DEBUG]   manualWordIndex:', manualWordIndex, typeof manualWordIndex);
+                console.log('[WORD_DEBUG]   manualWordList:', manualWordList);
+                console.log('[WORD_DEBUG]   manualWordList[manualWordIndex]:', manualWordList[manualWordIndex], typeof manualWordList[manualWordIndex]);
                 
                 pickedWord = manualWordList[manualWordIndex];
                 numOfWordale = manualWordIndex;
                 
-                console.log('[WORDLE_SYNC] AFTER ASSIGNMENT:');
-                console.log('  pickedWord:', pickedWord, typeof pickedWord);
-                console.log('  numOfWordale:', numOfWordale);
-                console.log('[WORDLE_SYNC] *** ORIGINAL INIT *** Using word:', pickedWord, 'index:', manualWordIndex, 'from manual list of', manualWordList.length, 'words');
-                console.log('[WORDLE_SYNC] This may conflict with game mode restoration!');
+                console.log('[WORD_DEBUG] ORIGINAL INIT - AFTER:');
+                console.log('[WORD_DEBUG]   pickedWord:', pickedWord, typeof pickedWord);
+                console.log('[WORD_DEBUG]   numOfWordale:', numOfWordale);
                 
                 // Update debug display
                 setTimeout(() => updateDebugInfo('original-init'), 200);
@@ -1615,19 +1613,18 @@ function loadWordlistForMode(mode, config) {
                 window.getSharedCurrentWord(function(sharedWord) {
                     if (sharedWord && window.manualListOfWords.includes(sharedWord)) {
                         // We have a valid shared word - use it directly
-                        console.log('[WORDLE_SYNC] FIREBASE WORD ASSIGNMENT:');
-                        console.log('  sharedWord:', sharedWord, typeof sharedWord);
-                        console.log('  window.manualListOfWords:', window.manualListOfWords);
-                        console.log('  indexOf result:', window.manualListOfWords.indexOf(sharedWord));
+                        console.log('[WORD_DEBUG] FIREBASE DIRECT - BEFORE:');
+                        console.log('[WORD_DEBUG]   sharedWord:', sharedWord, typeof sharedWord);
+                        console.log('[WORD_DEBUG]   window.manualListOfWords:', window.manualListOfWords);
+                        console.log('[WORD_DEBUG]   indexOf result:', window.manualListOfWords.indexOf(sharedWord));
                         
                         pickedWord = sharedWord;
                         manualWordIndex = window.manualListOfWords.indexOf(sharedWord);
                         numOfWordale = manualWordIndex;
                         
-                        console.log('[WORDLE_SYNC] AFTER FIREBASE ASSIGNMENT:');
-                        console.log('  pickedWord:', pickedWord, typeof pickedWord);
-                        console.log('  manualWordIndex:', manualWordIndex, typeof manualWordIndex);
-                        console.log(`[WORDLE_SYNC] *** WORD FROM FIREBASE *** Using stored word: "${pickedWord}" (index ${manualWordIndex}) for mode ${mode}`);
+                        console.log('[WORD_DEBUG] FIREBASE DIRECT - AFTER:');
+                        console.log('[WORD_DEBUG]   pickedWord:', pickedWord, typeof pickedWord);
+                        console.log('[WORD_DEBUG]   manualWordIndex:', manualWordIndex, typeof manualWordIndex);
                         
                         // Update localStorage
                         localStorage.setItem('manualWordIndex', manualWordIndex.toString());
@@ -1659,17 +1656,16 @@ function loadWordlistForMode(mode, config) {
                                 manualWordIndex = Math.max(0, Math.min(sharedIndex, window.manualListOfWords.length - 1));
                                 
                                 // Set the picked word from the index
-                                console.log('[WORDLE_SYNC] INDEX-BASED ASSIGNMENT:');
-                                console.log('  manualWordIndex:', manualWordIndex, typeof manualWordIndex);
-                                console.log('  window.manualListOfWords:', window.manualListOfWords);
-                                console.log('  window.manualListOfWords[manualWordIndex]:', window.manualListOfWords[manualWordIndex], typeof window.manualListOfWords[manualWordIndex]);
+                                console.log('[WORD_DEBUG] FIREBASE INDEX - BEFORE:');
+                                console.log('[WORD_DEBUG]   manualWordIndex:', manualWordIndex, typeof manualWordIndex);
+                                console.log('[WORD_DEBUG]   window.manualListOfWords:', window.manualListOfWords);
+                                console.log('[WORD_DEBUG]   window.manualListOfWords[manualWordIndex]:', window.manualListOfWords[manualWordIndex], typeof window.manualListOfWords[manualWordIndex]);
                                 
                                 pickedWord = window.manualListOfWords[manualWordIndex];
                                 numOfWordale = manualWordIndex;
                                 
-                                console.log('[WORDLE_SYNC] AFTER INDEX ASSIGNMENT:');
-                                console.log('  pickedWord:', pickedWord, typeof pickedWord);
-                                console.log(`[WORDLE_SYNC] *** WORD FROM INDEX *** pickedWord: "${pickedWord}" (index ${manualWordIndex}) for mode ${mode}`);
+                                console.log('[WORD_DEBUG] FIREBASE INDEX - AFTER:');
+                                console.log('[WORD_DEBUG]   pickedWord:', pickedWord, typeof pickedWord);
                                 
                                 // Store the word directly in Firebase for future consistency
                                 if (window.setSharedCurrentWord) {
@@ -1705,17 +1701,24 @@ function loadWordlistForMode(mode, config) {
                 // Fallback to localStorage only
                 const savedWord = localStorage.getItem('currentPickedWord');
                 const savedIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
+                console.log('[WORD_DEBUG] LOCALSTORAGE FALLBACK - BEFORE:');
+                console.log('[WORD_DEBUG]   savedWord:', savedWord, typeof savedWord);
+                console.log('[WORD_DEBUG]   savedIndex:', savedIndex, typeof savedIndex);
+                console.log('[WORD_DEBUG]   window.manualListOfWords:', window.manualListOfWords);
+                
                 if (savedWord && window.manualListOfWords.includes(savedWord)) {
                     pickedWord = savedWord;
                     manualWordIndex = window.manualListOfWords.indexOf(savedWord);
                     numOfWordale = manualWordIndex;
-                    console.log(`[WORDLE_SYNC] Using localStorage word: "${pickedWord}"`);
+                    console.log('[WORD_DEBUG] LOCALSTORAGE FALLBACK - AFTER (using saved word):');
                 } else {
                     manualWordIndex = Math.max(0, Math.min(savedIndex, window.manualListOfWords.length - 1));
                     pickedWord = window.manualListOfWords[manualWordIndex];
                     numOfWordale = manualWordIndex;
-                    console.log(`[WORDLE_SYNC] Using localStorage index: "${pickedWord}"`);
+                    console.log('[WORD_DEBUG] LOCALSTORAGE FALLBACK - AFTER (using saved index):');
                 }
+                console.log('[WORD_DEBUG]   pickedWord:', pickedWord, typeof pickedWord);
+                console.log('[WORD_DEBUG]   manualWordIndex:', manualWordIndex, typeof manualWordIndex);
                 
                 // Update debug display
                 updateDebugInfo('localStorage-fallback');
