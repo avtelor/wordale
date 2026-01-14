@@ -1019,8 +1019,13 @@ function loadUserData() {
         }
         
         // Restore the tiles and colors without calling compareWords
+        console.log('[RESTORE_DEBUG] ===== RESTORING TILES =====');
         for (k = 0; k < answersLetters.length; k++) {
             const rowNum = k + 1;
+            const currentRowWord = answersLetters[k].join('');
+            const currentRowColors = answersColors[k];
+            console.log(`[RESTORE_DEBUG] Row ${rowNum}: word="${currentRowWord}", colors=${JSON.stringify(currentRowColors)}`);
+            
             // Skip restoring the current row if user is typing
             if (rowNum === rowCount && currentRowHasInput) {
                 continue;
@@ -1029,6 +1034,15 @@ function loadUserData() {
             for (m = 0; m < answersLetters[k].length; m++) {
                 const tile = document.getElementById(`tile${rowNum}${m + 1}`);
                 if (tile) {
+                    // Check what's currently in the tile before overwriting
+                    const currentTileContent = tile.innerHTML || '';
+                    const newLetter = answersLetters[k][m];
+                    const newColor = answersColors[k][m];
+                    
+                    if (currentTileContent !== newLetter) {
+                        console.log(`[RESTORE_DEBUG] Tile ${rowNum}${m + 1}: "${currentTileContent}" -> "${newLetter}" (${newColor})`);
+                    }
+                    
                     // Don't overwrite if tile already has content and it's the current row
                     if (rowNum === rowCount && tile.innerHTML && currentRowHasInput) {
                         continue;
