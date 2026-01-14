@@ -1528,6 +1528,11 @@ function applyGameMode(mode) {
 window.applyGameMode = applyGameMode;
 
 function loadWordlistForMode(mode, config) {
+    console.log(`[WORDLE_SYNC] Loading wordlist for mode: ${mode}`);
+    
+    // For mode-specific wordlists, ensure we're in manual mode
+    const shouldEnableManualMode = mode !== 'test' || manualMode;
+    
     // Create a script element to load the wordlist
     const existingScript = document.querySelector(`script[src*="wordlist-${mode}"]`);
     if (existingScript) {
@@ -1537,6 +1542,8 @@ function loadWordlistForMode(mode, config) {
     const script = document.createElement('script');
     script.src = config.wordlistFile;
     script.onload = function() {
+        console.log(`[WORDLE_SYNC] Wordlist loaded for ${mode}, processing...`);
+        
         // After loading, save the wordlist to the appropriate variable
         if (mode === 'test') {
             window.manualListOfWords = listOfWords.slice();
@@ -1552,22 +1559,45 @@ function loadWordlistForMode(mode, config) {
         listOfWords = window.mainListOfWords;
         
         console.log(`[WORDLE_SYNC] Loaded ${mode} wordlist, length:`, window.manualListOfWords.length);
+        console.log(`[WORDLE_SYNC] First word in ${mode} list:`, window.manualListOfWords[0]);
         
-        // If in manual mode, reset to first word of new list
-        if (manualMode) {
-            manualWordIndex = 0;
-            pickedWord = window.manualListOfWords[0];
-            numOfWordale = 0;
-            
-            // Update Firebase with new index
-            if (window.setSharedManualWordIndex) {
-                window.setSharedManualWordIndex(0);
+        // For mode-specific wordlists (not daily words), enable manual mode and set the word
+        if (shouldEnableManualMode) {
+            // Enable manual mode if not already enabled
+            if (!manualMode) {
+                console.log(`[WORDLE_SYNC] Enabling manual mode for ${mode} wordlist`);
+                manualMode = true;
+                localStorage.setItem('manualMode', 'true');
+                
+                // Hide timer in manual mode
+                const timerLabel = document.getElementById('timerWithLabel');
+                if (timerLabel) timerLabel.style.display = 'none';
             }
             
-            // Reset game state
-            resetGameForNewWord();
-            updateManagerStatus();
+            // Get current word index from Firebase or localStorage
+            const savedIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
+            manualWordIndex = Math.max(0, Math.min(savedIndex, window.manualListOfWords.length - 1));
+            
+            // Set the picked word from the mode-specific list
+            pickedWord = window.manualListOfWords[manualWordIndex];
+            numOfWordale = manualWordIndex;
+            
+            console.log(`[WORDLE_SYNC] Set pickedWord to: "${pickedWord}" (index ${manualWordIndex})`);
+            
+            // Update Firebase with current index if available
+            if (window.setSharedManualWordIndex) {
+                window.setSharedManualWordIndex(manualWordIndex);
+            }
+            
+            // Update manager status if function exists
+            if (typeof updateManagerStatus === 'function') {
+                updateManagerStatus();
+            }
         }
+    };
+    
+    script.onerror = function() {
+        console.error(`[WORDLE_SYNC] Failed to load wordlist: ${config.wordlistFile}`);
     };
     
     document.head.appendChild(script);
