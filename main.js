@@ -1533,7 +1533,7 @@ function updateManagerStatus() {
     const gameModeText = {
         'test': 'בדיקה (Test)',
         'mayabd': 'מאיהוורדל (Maya BD)', 
-        'ignite': 'Ignite Wordle'
+        'ignite': 'Ignite'
     };
     
     document.getElementById('currentMode').textContent = manualMode ? 
