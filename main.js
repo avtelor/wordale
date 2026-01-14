@@ -1643,32 +1643,14 @@ function loadWordlistForMode(mode, config) {
                             updateManagerStatus();
                         }
                         
-                        // CLEAR conflicting saved data and start fresh
-                        console.log(`[WORDLE_SYNC] Target word is now "${pickedWord}" - clearing conflicting saved data`);
-                        
-                        // Clear saved progress for all possible word indices to prevent conflicts
-                        for (let i = 0; i < 10; i++) {
-                            localStorage.removeItem(`userDate_manual_${i}`);
-                            localStorage.removeItem(`answersColors_manual_${i}`);
-                            localStorage.removeItem(`answersLetters_manual_${i}`);
-                        }
-                        
-                        // Reset game state for clean start
-                        win = false;
-                        endOfGameToday = false;
-                        rowCount = 1;
-                        wordCount = 0;
-                        currentWord = '';
-                        answersColors = [];
-                        answersLetters = [];
-                        
-                        // Clear the UI
-                        if (typeof resetGameForNewWord === 'function') {
-                            resetGameForNewWord();
-                        }
-                        
-                        console.log(`[WORDLE_SYNC] Cleared saved data - fresh start with word "${pickedWord}"`);
-                        window.hasInitialLoadCompleted = true;
+                        // Load saved progress for THIS specific word after setting the word
+                        setTimeout(() => {
+                            console.log(`[WORDLE_SYNC] Loading user data for stored word "${pickedWord}"`);
+                            if (!window.hasInitialLoadCompleted) {
+                                loadUserData();
+                                window.hasInitialLoadCompleted = true;
+                            }
+                        }, 200);
                         
                     } else {
                         // No valid shared word found - fall back to index-based approach
