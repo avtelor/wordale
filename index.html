@@ -251,14 +251,15 @@ console.log(countPlayersPerDay());
       // Don't load user data automatically - let Firebase synchronization happen first
       // User data will be loaded after Firebase sync is complete
       
+      // Set flag IMMEDIATELY to prevent conflicts
+      window.skipInitialFirebaseSync = true;
+      console.log('[WORDLE_SYNC] Set skipInitialFirebaseSync = true');
+      
       // Initialize game mode and UI
       setTimeout(function() {
           // Check and restore saved game mode
           const savedGameMode = localStorage.getItem('gameMode') || 'test';
           console.log('[WORDLE_SYNC] Restoring saved game mode:', savedGameMode);
-          
-          // Set flag BEFORE applying mode to prevent conflicts
-          window.skipInitialFirebaseSync = true;
           
           // Apply the saved game mode
           if (window.applyGameMode) {
@@ -350,7 +351,7 @@ console.log(countPlayersPerDay());
           </div>
       </div>
       <div>
-          <img src="wordale-favicon.png" ondblclick="console.log('Double-click detected!'); openManagerPage();" style="cursor: pointer;" title="לחץ פעמיים לפתיחת דף ניהול">
+          <img src="wordale-favicon.png" ondblclick="openManagerPage()" style="cursor: pointer;" title="לחץ פעמיים לפתיחת דף ניהול">
       </div>
   </div>
 </head>
