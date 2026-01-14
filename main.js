@@ -986,6 +986,7 @@ function loadUserData() {
         const storageKey = `manual_${manualWordIndex}`;
         let savedDateString = localStorage.getItem(`userDate_${storageKey}`);
         console.log(`[WORDLE_SYNC] loadUserData called - manualWordIndex: ${manualWordIndex}, pickedWord: "${pickedWord}", storageKey: "${storageKey}"`);
+        console.log(`[WORDLE_SYNC] savedDateString:`, savedDateString);
         if (!savedDateString) {
             console.log('loadUserData skipped - no saved data for manual word', manualWordIndex);
             return;
@@ -994,6 +995,8 @@ function loadUserData() {
         // In manual mode, always load the saved data for this word (don't check date)
         const savedLetters = localStorage.getItem(`answersLetters_${storageKey}`);
         const savedColors = localStorage.getItem(`answersColors_${storageKey}`);
+        console.log(`[WORDLE_SYNC] savedLetters:`, savedLetters);
+        console.log(`[WORDLE_SYNC] savedColors:`, savedColors);
         if (!savedLetters || !savedColors) {
             console.log('loadUserData skipped - no saved letters/colors');
             return;
@@ -1545,7 +1548,7 @@ function getModeConfig(mode) {
         },
         'ignite': {
             favicon: 'wordale-favicon-ignite.png',
-            title: 'Wordle',
+            title: 'Ignite DeepTech',
             wordlistFile: 'wordlist-ignite.js',
             wordlistVar: 'igniteListOfWords'
         }
