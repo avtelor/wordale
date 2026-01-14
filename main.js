@@ -1485,7 +1485,7 @@ function updateManagerStatus() {
     const gameModeText = {
         'test': 'בדיקה (Test)',
         'mayabd': 'מאיהוורדל (Maya BD)', 
-        'ignite': 'Wordle'
+        'ignite': 'Ignite Wordle'
     };
     
     document.getElementById('currentMode').textContent = manualMode ? 
@@ -1545,7 +1545,7 @@ function getModeConfig(mode) {
         },
         'ignite': {
             favicon: 'wordale-favicon-ignite.png',
-            title: 'Ignite Wordle',
+            title: 'Wordle',
             wordlistFile: 'wordlist-ignite.js',
             wordlistVar: 'igniteListOfWords'
         }
@@ -1670,9 +1670,13 @@ function loadWordlistForMode(mode, config) {
                         // Load saved progress for THIS specific word after setting the word
                         setTimeout(() => {
                             console.log(`[WORDLE_SYNC] Loading user data for stored word "${pickedWord}"`);
+                            console.log(`[WORDLE_SYNC] hasInitialLoadCompleted: ${window.hasInitialLoadCompleted}`);
                             if (!window.hasInitialLoadCompleted) {
+                                console.log(`[WORDLE_SYNC] Calling loadUserData()...`);
                                 loadUserData();
                                 window.hasInitialLoadCompleted = true;
+                            } else {
+                                console.log(`[WORDLE_SYNC] Skipping loadUserData - already completed`);
                             }
                         }, 200);
                         
