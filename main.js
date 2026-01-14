@@ -998,6 +998,16 @@ function loadUserData() {
             console.log('loadUserData skipped - no saved letters/colors');
             return;
         }
+        
+        // RESTORE_DEBUG: Show what saved data is being loaded
+        console.log('[RESTORE_DEBUG] ===== LOADING SAVED DATA =====');
+        console.log('[RESTORE_DEBUG] Current target word:', pickedWord);
+        console.log('[RESTORE_DEBUG] Storage key:', storageKey);
+        console.log('[RESTORE_DEBUG] Saved letters:', savedLetters);
+        console.log('[RESTORE_DEBUG] Saved colors:', savedColors);
+        console.log('[RESTORE_DEBUG] WARNING: These colors may have been calculated for a different target word!');
+        console.log('[RESTORE_DEBUG] ===============================');
+        
         answersLetters = JSON.parse(savedLetters);
         answersColors = JSON.parse(savedColors);
         
