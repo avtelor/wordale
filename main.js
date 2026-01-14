@@ -1595,72 +1595,95 @@ function loadWordlistForMode(mode, config) {
             // DON'T set pickedWord immediately - wait for Firebase sync
             console.log(`[WORDLE_SYNC] Mode ${mode} wordlist loaded, waiting for Firebase sync before setting word...`);
             
-            // Trigger Firebase sync to get the correct shared word index
-            if (window.getSharedManualWordIndex) {
-                window.getSharedManualWordIndex(function(sharedIndex) {
-                    console.log(`[WORDLE_SYNC] ===== FIREBASE SYNC START =====`);
-                    console.log(`[WORDLE_SYNC] Got shared index ${sharedIndex} for mode ${mode}`);
-                    console.log(`[WORDLE_SYNC] Available words in ${mode} list:`, window.manualListOfWords);
-                    
-                    manualWordIndex = Math.max(0, Math.min(sharedIndex, window.manualListOfWords.length - 1));
-                    
-                    // NOW set the picked word from the correct index
-                    pickedWord = window.manualListOfWords[manualWordIndex];
-                    numOfWordale = manualWordIndex;
-                    
-                    console.log(`[WORDLE_SYNC] *** FINAL WORD SET *** pickedWord: "${pickedWord}" (index ${manualWordIndex}) for mode ${mode}`);
-                    console.log(`[WORDLE_SYNC] Word verification: index ${manualWordIndex} -> word "${pickedWord}" from list:`, window.manualListOfWords.slice(0, 5), '...');
-                    console.log(`[WORDLE_SYNC] Storing manualWordIndex ${manualWordIndex} to localStorage`);
-                    console.log(`[WORDLE_SYNC] ===== FIREBASE SYNC END =====`);
-                    
-                    // Update localStorage to ensure consistency
-                    localStorage.setItem('manualWordIndex', manualWordIndex.toString());
-                    
-                    // CRITICAL: Also save the current picked word to verify consistency
-                    localStorage.setItem('currentPickedWord', pickedWord);
-                    
-                    // Double-check that Firebase has the correct value by re-setting it
-                    if (window.setSharedManualWordIndex) {
-                        console.log(`[WORDLE_SYNC] Confirming Firebase has correct index ${manualWordIndex}`);
-                        window.setSharedManualWordIndex(manualWordIndex);
-                    }
-                    
-                    // Update manager status if function exists
-                    if (typeof updateManagerStatus === 'function') {
-                        updateManagerStatus();
-                    }
-                    
-                    // Load saved progress for THIS specific word index after setting the word
-                    setTimeout(() => {
-                        console.log(`[WORDLE_SYNC] Loading user data for word index ${manualWordIndex} ("${pickedWord}")`);
-                        if (!window.hasInitialLoadCompleted) {
-                            loadUserData();
-                            window.hasInitialLoadCompleted = true;
+            // NEW APPROACH: First try to get the direct current word from Firebase
+            console.log(`[WORDLE_SYNC] ===== FIREBASE SYNC START =====`);
+            
+            if (window.getSharedCurrentWord) {
+                window.getSharedCurrentWord(function(sharedWord) {
+                    if (sharedWord && window.manualListOfWords.includes(sharedWord)) {
+                        // We have a valid shared word - use it directly
+                        pickedWord = sharedWord;
+                        manualWordIndex = window.manualListOfWords.indexOf(sharedWord);
+                        numOfWordale = manualWordIndex;
+                        
+                        console.log(`[WORDLE_SYNC] *** WORD FROM FIREBASE *** Using stored word: "${pickedWord}" (index ${manualWordIndex}) for mode ${mode}`);
+                        
+                        // Update localStorage
+                        localStorage.setItem('manualWordIndex', manualWordIndex.toString());
+                        localStorage.setItem('currentPickedWord', pickedWord);
+                        
+                        // Update manager and load data
+                        if (typeof updateManagerStatus === 'function') {
+                            updateManagerStatus();
                         }
-                    }, 200);
+                        
+                        setTimeout(() => {
+                            console.log(`[WORDLE_SYNC] Loading user data for stored word "${pickedWord}"`);
+                            if (!window.hasInitialLoadCompleted) {
+                                loadUserData();
+                                window.hasInitialLoadCompleted = true;
+                            }
+                        }, 200);
+                        
+                    } else {
+                        // No valid shared word found - fall back to index-based approach
+                        console.log(`[WORDLE_SYNC] No valid shared word found ("${sharedWord}"), falling back to index approach`);
+                        
+                        if (window.getSharedManualWordIndex) {
+                            window.getSharedManualWordIndex(function(sharedIndex) {
+                                console.log(`[WORDLE_SYNC] Got shared index ${sharedIndex} for mode ${mode}`);
+                                manualWordIndex = Math.max(0, Math.min(sharedIndex, window.manualListOfWords.length - 1));
+                                
+                                // Set the picked word from the index
+                                pickedWord = window.manualListOfWords[manualWordIndex];
+                                numOfWordale = manualWordIndex;
+                                
+                                console.log(`[WORDLE_SYNC] *** WORD FROM INDEX *** pickedWord: "${pickedWord}" (index ${manualWordIndex}) for mode ${mode}`);
+                                
+                                // Store the word directly in Firebase for future consistency
+                                if (window.setSharedCurrentWord) {
+                                    window.setSharedCurrentWord(pickedWord);
+                                }
+                                
+                                // Update localStorage
+                                localStorage.setItem('manualWordIndex', manualWordIndex.toString());
+                                localStorage.setItem('currentPickedWord', pickedWord);
+                                
+                                // Update manager and load data
+                                if (typeof updateManagerStatus === 'function') {
+                                    updateManagerStatus();
+                                }
+                                
+                                setTimeout(() => {
+                                    console.log(`[WORDLE_SYNC] Loading user data for index-based word "${pickedWord}"`);
+                                    if (!window.hasInitialLoadCompleted) {
+                                        loadUserData();
+                                        window.hasInitialLoadCompleted = true;
+                                    }
+                                }, 200);
+                            });
+                        }
+                    }
+                    console.log(`[WORDLE_SYNC] ===== FIREBASE SYNC END =====`);
                 });
             } else {
-                // Fallback if Firebase not available - use localStorage
+                console.log(`[WORDLE_SYNC] getSharedCurrentWord not available, falling back to index approach`);
+                // Fallback to localStorage only
+                const savedWord = localStorage.getItem('currentPickedWord');
                 const savedIndex = parseInt(localStorage.getItem('manualWordIndex') || '0');
-                manualWordIndex = Math.max(0, Math.min(savedIndex, window.manualListOfWords.length - 1));
-                
-                pickedWord = window.manualListOfWords[manualWordIndex];
-                numOfWordale = manualWordIndex;
-                
-                console.log(`[WORDLE_SYNC] *** FALLBACK WORD SET *** Firebase not available, using localStorage index ${manualWordIndex}: "${pickedWord}"`);
-                
-                if (typeof updateManagerStatus === 'function') {
-                    updateManagerStatus();
+                if (savedWord && window.manualListOfWords.includes(savedWord)) {
+                    pickedWord = savedWord;
+                    manualWordIndex = window.manualListOfWords.indexOf(savedWord);
+                    numOfWordale = manualWordIndex;
+                    console.log(`[WORDLE_SYNC] Using localStorage word: "${pickedWord}"`);
+                } else {
+                    manualWordIndex = Math.max(0, Math.min(savedIndex, window.manualListOfWords.length - 1));
+                    pickedWord = window.manualListOfWords[manualWordIndex];
+                    numOfWordale = manualWordIndex;
+                    console.log(`[WORDLE_SYNC] Using localStorage index: "${pickedWord}"`);
                 }
-                
-                // Load saved progress for THIS specific word index
-                setTimeout(() => {
-                    if (!window.hasInitialLoadCompleted) {
-                        loadUserData();
-                        window.hasInitialLoadCompleted = true;
-                    }
-                }, 200);
             }
+        }
         }
     };
     
@@ -1717,11 +1740,23 @@ function moveToNextWord() {
     if (window.setSharedManualWordIndex) {
         console.log('[WORDLE_SYNC] Calling setSharedManualWordIndex with:', newIndex);
         window.setSharedManualWordIndex(newIndex);
+        
+        // CRITICAL: Also store the actual word directly for consistency
+        const newWord = manualWordList[newIndex];
+        console.log('[WORDLE_SYNC] Storing current word in Firebase:', newWord);
+        if (window.setSharedCurrentWord) {
+            window.setSharedCurrentWord(newWord);
+        }
+        
         // The listener will handle updating the local state when Firebase updates
         // But we also update locally immediately for this user
         manualWordIndex = newIndex;
-        pickedWord = manualWordList[manualWordIndex];
+        pickedWord = newWord;
         numOfWordale = manualWordIndex;
+        
+        // Store in localStorage for consistency
+        localStorage.setItem('manualWordIndex', manualWordIndex.toString());
+        localStorage.setItem('currentPickedWord', pickedWord);
         
         // Reset all game state (like a new day)
         win = false;

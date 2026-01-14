@@ -45,7 +45,7 @@
     
       // זמינות גלובלית לפונקציות דרך window (כדי שתוכל לקרוא להן מתוך main.js)
       
-      // Functions for shared manual word index
+      // Functions for shared manual word index AND current word
       window.getSharedManualWordIndex = function(callback) {
         console.log('[WORDLE_SYNC] Getting shared word index from Firebase...');
         get(child(ref(db), 'manualMode/currentWordIndex')).then((snapshot) => {
@@ -68,6 +68,33 @@
           console.error('[WORDLE_SYNC] Error getting shared word index:', error);
           console.error('[WORDLE_SYNC] Database URL:', 'https://wordle-e76d9-default-rtdb.europe-west1.firebasedatabase.app');
           callback(0);
+        });
+      };
+      
+      // NEW: Function to get/set the actual current word directly
+      window.getSharedCurrentWord = function(callback) {
+        console.log('[WORDLE_SYNC] Getting shared current word from Firebase...');
+        get(child(ref(db), 'manualMode/currentWord')).then((snapshot) => {
+          if (snapshot.exists()) {
+            const word = snapshot.val();
+            console.log('[WORDLE_SYNC] Retrieved current word from Firebase:', word);
+            callback(word);
+          } else {
+            console.log('[WORDLE_SYNC] No current word found in Firebase');
+            callback(null);
+          }
+        }).catch((error) => {
+          console.error('[WORDLE_SYNC] Error getting shared current word:', error);
+          callback(null);
+        });
+      };
+      
+      window.setSharedCurrentWord = function(word) {
+        console.log('[WORDLE_SYNC] Setting shared current word in Firebase:', word);
+        set(ref(db, 'manualMode/currentWord'), word).then(() => {
+          console.log('[WORDLE_SYNC] Successfully updated current word in Firebase to:', word);
+        }).catch((error) => {
+          console.error('[WORDLE_SYNC] Error setting shared current word:', error);
         });
       };
       
