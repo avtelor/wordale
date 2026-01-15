@@ -219,6 +219,10 @@
               if (isFirstCall) {
                 isFirstCall = false;
                 console.log('[WORDLE_SYNC] Current word Firebase listener set up, initial value:', newWord);
+                // CRITICAL: Still call the callback on first call if word is different
+                // This ensures devices sync even when they first load
+                console.log('[WORDLE_SYNC] Processing initial word value through callback');
+                callback(newWord);
                 return;
               }
               console.log('[WORDLE_SYNC] Firebase detected current word change to:', newWord);

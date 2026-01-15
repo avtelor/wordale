@@ -377,6 +377,11 @@ if (manualMode) {
     
     // Start trying to initialize manual mode
     tryInitializeManualMode();
+    
+    // Also ensure listeners are set up (in addition to the initialization)
+    setTimeout(() => {
+        ensureListenersSetup();
+    }, 4000); // After initialization completes
 } else {
     pickedWord = pickWord();
     // Load user data for auto mode (daily word) - only on initial load
@@ -384,7 +389,66 @@ if (manualMode) {
         loadUserData();
         window.hasInitialLoadCompleted = true;
     }
+    
+    // Not in manual mode initially, but we should still set up listeners
+    // in case this device switches to manual mode or other devices change words
+    console.log('[WORDLE_SYNC] Not in manual mode, but setting up listeners for sync');
+    setTimeout(() => {
+        ensureListenersSetup();
+    }, 2000);
 }
+
+// Function to ensure all necessary listeners are set up regardless of initial mode
+function ensureListenersSetup() {
+    if (window.watchSharedCurrentWord && !window.currentWordListenerSetup) {
+        console.log('[WORDLE_SYNC] Setting up current word listener for sync');
+        window.currentWordListenerSetup = true;
+        
+        window.watchSharedCurrentWord(function(newWord) {
+            console.log('[WORDLE_SYNC] Current word change detected:', newWord);
+            
+            // Only react if we're in manual mode
+            const isManualMode = manualMode || localStorage.getItem('manualMode') === 'true';
+            if (!isManualMode) {
+                console.log('[WORDLE_SYNC] Not in manual mode, ignoring word change');
+                return;
+            }
+            
+            const currentWord = pickedWord;
+            const manualWordList = window.manualListOfWords || [];
+            
+            if (newWord && newWord !== currentWord && manualWordList.includes(newWord)) {
+                console.log('[WORDLE_SYNC] Applying word change from', currentWord, 'to', newWord);
+                const newIndex = manualWordList.indexOf(newWord);
+                
+                // Update local state
+                manualWordIndex = newIndex;
+                pickedWord = newWord;
+                numOfWordale = newIndex;
+                
+                // Reset game for the new word
+                console.log('[WORDLE_SYNC] Resetting game for new word');
+                win = false;
+                endOfGameToday = false;
+                rowCount = 1;
+                wordCount = 0;
+                currentWord = '';
+                answersColors = [];
+                answersLetters = [];
+                
+                resetGameForNewWord();
+                
+                // Load saved progress for this word if any
+                setTimeout(() => {
+                    loadUserData();
+                }, 100);
+                
+                openNotification(`מילה ${newIndex + 1} מתוך ${manualWordList.length}`);
+            }
+        });
+    }
+}
+
 //set the timer for next wordale
 countDownTimer();
 
@@ -1654,6 +1718,11 @@ function enableManualMode() {
     // Set up Firebase listener for manual mode
     console.log('[WORDLE_SYNC] Entering manual mode via manager, setting up Firebase listener...');
     setupManualModeListener();
+    
+    // Also ensure word change listeners are set up
+    setTimeout(() => {
+        ensureListenersSetup();
+    }, 1000);
 }
 
 function updateManagerStatus() {
