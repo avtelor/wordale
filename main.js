@@ -220,7 +220,15 @@ if (manualMode) {
                                     answersColors = [];
                                     answersLetters = [];
                                     
-                                    resetGameForNewWord();
+                                    // Only reset if we don't have saved progress for this word
+                                    const storageKey = `manual_${manualWordIndex}`;
+                                    const hasSavedProgress = localStorage.getItem(`answersLetters_${storageKey}`) && localStorage.getItem(`answersColors_${storageKey}`);
+                                    if (!hasSavedProgress) {
+                                        resetGameForNewWord();
+                                    } else {
+                                        console.log('[WORDLE_SYNC] Skipping reset - found saved progress, loading instead');
+                                        loadUserData();
+                                    }
                                     
                                     // Allow resets again after a small delay
                                     setTimeout(function() {
@@ -1422,7 +1430,15 @@ function setupManualModeListener() {
                     answersColors = [];
                     answersLetters = [];
                     
-                    resetGameForNewWord();
+                    // Only reset if we don't have saved progress for this word
+                    const storageKey = `manual_${manualWordIndex}`;
+                    const hasSavedProgress = localStorage.getItem(`answersLetters_${storageKey}`) && localStorage.getItem(`answersColors_${storageKey}`);
+                    if (!hasSavedProgress) {
+                        resetGameForNewWord();
+                    } else {
+                        console.log('[WORDLE_SYNC] Skipping reset - found saved progress, loading instead');
+                        loadUserData();
+                    }
                     
                     // Allow resets again immediately - no need for delay
                     isResetting = false;
