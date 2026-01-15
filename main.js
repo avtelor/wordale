@@ -1664,6 +1664,14 @@ function applyGameMode(mode) {
     
     // Load the appropriate wordlist
     loadWordlistForMode(mode, config);
+    
+    // CRITICAL: Re-establish word listeners for the new mode
+    setTimeout(() => {
+        if (window.watchSharedManualWordIndex) {
+            console.log('[WORDLE_SYNC] Re-establishing word listeners for mode:', mode);
+            setupManualModeListener();
+        }
+    }, 1000);
 }
 
 // Make applyGameMode available globally
