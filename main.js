@@ -977,26 +977,10 @@ function loadUserData() {
     // Skip loading if in manual mode (check both variable and localStorage)
     const isManualMode = manualMode || localStorage.getItem('manualMode') === 'true';
     if (isManualMode) {
-        // STRICT: Don't load if user has ANY active input or game state
+        // Only skip if user is actively typing in the current word
         if (currentWord && currentWord.length > 0) {
             console.log('loadUserData skipped - user is currently typing');
             return;
-        }
-        
-        // Don't load if there are any tiles with content in the current row
-        if (rowCount >= 1 && rowCount <= 6) {
-            let hasContentInCurrentRow = false;
-            for (let i = 1; i <= 5; i++) {
-                const tile = document.getElementById(`tile${rowCount}${i}`);
-                if (tile && tile.innerHTML && tile.innerHTML.trim() !== '') {
-                    hasContentInCurrentRow = true;
-                    break;
-                }
-            }
-            if (hasContentInCurrentRow) {
-                console.log('loadUserData skipped - current row has content');
-                return;
-            }
         }
         
         // In manual mode, load data for the current word index
