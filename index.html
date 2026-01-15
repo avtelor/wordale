@@ -226,9 +226,7 @@
                 return;
               }
               console.log('[WORDLE_SYNC] Firebase detected current word change to:', newWord);
-              console.log('[WORDLE_SYNC] About to call callback with newWord:', newWord);
               callback(newWord);
-              console.log('[WORDLE_SYNC] Callback completed for word:', newWord);
             } else {
               console.log('[WORDLE_SYNC] Current word Firebase listener: snapshot does not exist');
             }

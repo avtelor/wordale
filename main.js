@@ -400,23 +400,15 @@ if (manualMode) {
 
 // Function to ensure all necessary listeners are set up regardless of initial mode
 function ensureListenersSetup() {
-    console.log('[WORDLE_SYNC] ===== ENSURE LISTENERS SETUP CALLED =====');
-    console.log('[WORDLE_SYNC] window.watchSharedCurrentWord available:', !!window.watchSharedCurrentWord);
-    console.log('[WORDLE_SYNC] window.currentWordListenerSetup:', window.currentWordListenerSetup);
     if (window.watchSharedCurrentWord && !window.currentWordListenerSetup) {
         console.log('[WORDLE_SYNC] Setting up current word listener for sync');
         window.currentWordListenerSetup = true;
         
         window.watchSharedCurrentWord(function(newWord) {
-            console.log('[WORDLE_SYNC] ===== WORD CHANGE CALLBACK TRIGGERED =====');
             console.log('[WORDLE_SYNC] Current word change detected:', newWord);
-            console.log('[WORDLE_SYNC] Current pickedWord:', pickedWord);
-            console.log('[WORDLE_SYNC] manualMode variable:', manualMode);
-            console.log('[WORDLE_SYNC] localStorage manualMode:', localStorage.getItem('manualMode'));
             
             // Only react if we're in manual mode
             const isManualMode = manualMode || localStorage.getItem('manualMode') === 'true';
-            console.log('[WORDLE_SYNC] isManualMode calculated as:', isManualMode);
             if (!isManualMode) {
                 console.log('[WORDLE_SYNC] Not in manual mode, ignoring word change');
                 return;
@@ -424,9 +416,6 @@ function ensureListenersSetup() {
             
             const currentWord = pickedWord;
             const manualWordList = window.manualListOfWords || [];
-            console.log('[WORDLE_SYNC] currentWord:', currentWord, 'newWord:', newWord);
-            console.log('[WORDLE_SYNC] manualWordList:', manualWordList);
-            console.log('[WORDLE_SYNC] manualWordList.includes(newWord):', manualWordList.includes(newWord));
             
             if (newWord && newWord !== currentWord && manualWordList.includes(newWord)) {
                 console.log('[WORDLE_SYNC] Applying word change from', currentWord, 'to', newWord);
@@ -1912,12 +1901,18 @@ function loadWordlistForMode(mode, config) {
             if (window.getSharedCurrentWord) {
                 window.getSharedCurrentWord(function(sharedWord) {
                     if (sharedWord && window.manualListOfWords.includes(sharedWord)) {
-                        // We have a valid shared word - use it directly
+                        // Check if this is a different word that requires reset
+                        const previousWord = pickedWord;
+                        const isWordChange = previousWord !== sharedWord;
+                        
                         console.log('[WORD_DEBUG] FIREBASE DIRECT - BEFORE:');
                         console.log('[WORD_DEBUG]   sharedWord:', sharedWord, typeof sharedWord);
+                        console.log('[WORD_DEBUG]   previousWord:', previousWord);
+                        console.log('[WORD_DEBUG]   isWordChange:', isWordChange);
                         console.log('[WORD_DEBUG]   window.manualListOfWords:', window.manualListOfWords);
                         console.log('[WORD_DEBUG]   indexOf result:', window.manualListOfWords.indexOf(sharedWord));
                         
+                        // Update word state
                         pickedWord = sharedWord;
                         manualWordIndex = window.manualListOfWords.indexOf(sharedWord);
                         numOfWordale = manualWordIndex;
@@ -1933,14 +1928,34 @@ function loadWordlistForMode(mode, config) {
                         // Update debug display
                         updateDebugInfo('firebase-word');
                         
-                        // Update manager and load data
+                        // Update manager status
                         if (typeof updateManagerStatus === 'function') {
                             updateManagerStatus();
                         }
                         
-                        // Load saved progress for THIS specific word after setting the word
+                        // CRITICAL: If word changed, reset the game first!
+                        if (isWordChange) {
+                            console.log(`[WORDLE_SYNC] WORD CHANGED! Resetting game from "${previousWord}" to "${sharedWord}"`);
+                            
+                            // Reset game state completely
+                            win = false;
+                            endOfGameToday = false;
+                            rowCount = 1;
+                            wordCount = 0;
+                            currentWord = '';
+                            answersColors = [];
+                            answersLetters = [];
+                            
+                            // Reset the visual game board
+                            resetGameForNewWord();
+                            
+                            // Show notification about word change
+                            openNotification(`מילה ${manualWordIndex + 1} מתוך ${window.manualListOfWords.length}`);
+                        }
+                        
+                        // Load saved progress for THIS specific word after reset (if needed)
                         setTimeout(() => {
-                            console.log(`[WORDLE_SYNC] Loading user data for stored word "${pickedWord}"`);
+                            console.log(`[WORDLE_SYNC] Loading user data for ${isWordChange ? 'NEW' : 'SAME'} word "${pickedWord}"`);
                             console.log(`[WORDLE_SYNC] hasInitialLoadCompleted: ${window.hasInitialLoadCompleted}`);
                             if (!window.hasInitialLoadCompleted) {
                                 console.log(`[WORDLE_SYNC] Calling loadUserData()...`);
