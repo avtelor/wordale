@@ -1036,11 +1036,27 @@ return messageArray[randIndex];
 
 function checkSpell(word) {
 let wordExists = false;
+
+// First check dictionary (hebWords)
 splitWordsHebrew = hebWords.split(' ');
 for (i = 0; i < splitWordsHebrew.length; i++) {
     if (splitWordsHebrew[i] === (word)) {
         wordExists = true;
         break;
+    }
+}
+
+// If not found in dictionary, check wordlists
+if (!wordExists) {
+    // Check main wordlist (listOfWords)
+    if (listOfWords && listOfWords.includes(word)) {
+        wordExists = true;
+        console.log(`[VALIDATION] Word "${word}" found in main wordlist (not in dictionary)`);
+    }
+    // Also check manual mode wordlist if available
+    else if (window.manualListOfWords && window.manualListOfWords.includes(word)) {
+        wordExists = true;
+        console.log(`[VALIDATION] Word "${word}" found in manual wordlist (not in dictionary)`);
     }
 }
 
