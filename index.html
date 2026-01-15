@@ -56,16 +56,17 @@
       
       // Functions for shared manual word index AND current word
       window.getSharedManualWordIndex = function(callback) {
-        console.log('[WORDLE_SYNC] Getting shared word index from Firebase...');
-        get(child(ref(db), 'manualMode/currentWordIndex')).then((snapshot) => {
+        const currentMode = localStorage.getItem('gameMode') || 'test';
+        console.log('[WORDLE_SYNC] Getting shared word index from Firebase for mode:', currentMode);
+        get(child(ref(db), `gameSettings/${currentMode}/currentWordIndex`)).then((snapshot) => {
           if (snapshot.exists()) {
             const index = parseInt(snapshot.val()) || 0;
             console.log('[WORDLE_SYNC] Retrieved word index from Firebase:', index);
             callback(index);
           } else {
-            console.log('[WORDLE_SYNC] No word index found, initializing to 0...');
+            console.log('[WORDLE_SYNC] No word index found for', currentMode, ', initializing to 0...');
             // Initialize to 0 in Firebase if doesn't exist (so all devices sync)
-            set(ref(db, 'manualMode/currentWordIndex'), 0).then(() => {
+            set(ref(db, `gameSettings/${currentMode}/currentWordIndex`), 0).then(() => {
               console.log('[WORDLE_SYNC] Initialized word index to 0 in Firebase');
               callback(0);
             }).catch((error) => {
@@ -82,14 +83,15 @@
       
       // NEW: Function to get/set the actual current word directly
       window.getSharedCurrentWord = function(callback) {
-        console.log('[WORDLE_SYNC] Getting shared current word from Firebase...');
-        get(child(ref(db), 'manualMode/currentWord')).then((snapshot) => {
+        const currentMode = localStorage.getItem('gameMode') || 'test';
+        console.log('[WORDLE_SYNC] Getting shared current word from Firebase for mode:', currentMode);
+        get(child(ref(db), `gameSettings/${currentMode}/currentWord`)).then((snapshot) => {
           if (snapshot.exists()) {
             const word = snapshot.val();
             console.log('[WORDLE_SYNC] Retrieved current word from Firebase:', word);
             callback(word);
           } else {
-            console.log('[WORDLE_SYNC] No current word found in Firebase');
+            console.log('[WORDLE_SYNC] No current word found in Firebase for mode:', currentMode);
             callback(null);
           }
         }).catch((error) => {
@@ -99,8 +101,9 @@
       };
       
       window.setSharedCurrentWord = function(word) {
-        console.log('[WORDLE_SYNC] Setting shared current word in Firebase:', word);
-        set(ref(db, 'manualMode/currentWord'), word).then(() => {
+        const currentMode = localStorage.getItem('gameMode') || 'test';
+        console.log('[WORDLE_SYNC] Setting shared current word in Firebase for mode', currentMode, ':', word);
+        set(ref(db, `gameSettings/${currentMode}/currentWord`), word).then(() => {
           console.log('[WORDLE_SYNC] Successfully updated current word in Firebase to:', word);
         }).catch((error) => {
           console.error('[WORDLE_SYNC] Error setting shared current word:', error);
@@ -108,9 +111,10 @@
       };
       
       window.setSharedManualWordIndex = function(index) {
+        const currentMode = localStorage.getItem('gameMode') || 'test';
         const startTime = Date.now();
-        console.log('[WORDLE_SYNC] Setting shared word index to:', index, 'at', startTime);
-        set(ref(db, 'manualMode/currentWordIndex'), index).then(() => {
+        console.log('[WORDLE_SYNC] Setting shared word index for mode', currentMode, 'to:', index, 'at', startTime);
+        set(ref(db, `gameSettings/${currentMode}/currentWordIndex`), index).then(() => {
           const endTime = Date.now();
           console.log('[WORDLE_SYNC] Successfully updated word index in Firebase to:', index, 'took', (endTime - startTime) + 'ms');
         }).catch((error) => {
@@ -121,8 +125,9 @@
       
       window.watchSharedManualWordIndex = function(callback) {
         try {
-          console.log('[WORDLE_SYNC] Setting up Firebase listener...');
-          const wordIndexRef = ref(db, 'manualMode/currentWordIndex');
+          const currentMode = localStorage.getItem('gameMode') || 'test';
+          console.log('[WORDLE_SYNC] Setting up Firebase listener for mode:', currentMode);
+          const wordIndexRef = ref(db, `gameSettings/${currentMode}/currentWordIndex`);
           let isFirstCall = true;
           onValue(wordIndexRef, (snapshot) => {
             if (snapshot.exists()) {
