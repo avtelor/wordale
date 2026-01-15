@@ -1945,6 +1945,30 @@ function moveToNextWord() {
 
 //loadUserData();
 
+// Set up Firebase game mode synchronization independently
+function setupGameModeSync() {
+    if (window.watchSharedGameMode) {
+        console.log('[WORDLE_SYNC] Setting up independent Firebase listener for game mode changes');
+        window.watchSharedGameMode(function(newMode) {
+            console.log('[WORDLE_SYNC] Game mode change detected from Firebase:', newMode);
+            const currentMode = localStorage.getItem('gameMode') || 'test';
+            
+            if (newMode && newMode !== currentMode) {
+                console.log('[WORDLE_SYNC] Applying game mode change from', currentMode, 'to', newMode);
+                localStorage.setItem('gameMode', newMode);
+                applyGameMode(newMode);
+                openNotification(`משתנה למצב: ${getModeConfig(newMode).title}`);
+            }
+        });
+    } else {
+        console.log('[WORDLE_SYNC] Firebase watchSharedGameMode function not available - retrying in 1 second');
+        setTimeout(setupGameModeSync, 1000);
+    }
+}
+
+// Initialize game mode sync after a short delay
+setTimeout(setupGameModeSync, 2000);
+
 // DEBUG: Function to update debug display
 function updateDebugInfo(source = 'unknown') {
     const currentTime = new Date().toLocaleTimeString();

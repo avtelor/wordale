@@ -49,6 +49,11 @@
       window.skipInitialFirebaseSync = true;
       console.log('[WORDLE_SYNC] Set skipInitialFirebaseSync = true (early)');
       
+      // Immediate Firebase test
+      console.log('[WORDLE_SYNC] Testing Firebase immediately after setup...');
+      console.log('[WORDLE_SYNC] Database reference available:', !!db);
+      console.log('[WORDLE_SYNC] Firebase app:', app);
+      
       // Functions for shared manual word index AND current word
       window.getSharedManualWordIndex = function(callback) {
         console.log('[WORDLE_SYNC] Getting shared word index from Firebase...');
@@ -296,10 +301,25 @@ console.log(countPlayersPerDay());
         console.log('[WORDLE_SYNC] Testing Firebase connection...');
         if (window.getSharedManualWordIndex) {
           window.getSharedManualWordIndex((index) => {
-            console.log('[WORDLE_SYNC] Firebase test successful, current index:', index);
+            console.log('[WORDLE_SYNC] Firebase word index test successful, current index:', index);
           });
         } else {
-          console.log('[WORDLE_SYNC] Firebase functions not available');
+          console.log('[WORDLE_SYNC] Firebase word index functions not available');
+        }
+        
+        if (window.getSharedGameMode) {
+          window.getSharedGameMode((mode) => {
+            console.log('[WORDLE_SYNC] Firebase game mode test successful, current mode:', mode);
+          });
+        } else {
+          console.log('[WORDLE_SYNC] Firebase game mode functions not available');
+        }
+        
+        // Test if we can write to Firebase
+        if (window.setSharedGameMode) {
+          console.log('[WORDLE_SYNC] Testing Firebase write access...');
+          const currentMode = localStorage.getItem('gameMode') || 'test';
+          window.setSharedGameMode(currentMode);
         }
       }, 2000);
   
