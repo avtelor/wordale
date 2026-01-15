@@ -220,20 +220,12 @@ if (manualMode) {
                                     answersColors = [];
                                     answersLetters = [];
                                     
-                                    // Check if this is just a page refresh (same word) vs actual word change
-                                    const storageKey = `manual_${manualWordIndex}`;
-                                    const hasSavedProgress = localStorage.getItem(`answersLetters_${storageKey}`) && localStorage.getItem(`answersColors_${storageKey}`);
-                                    const currentStoredWord = localStorage.getItem('currentPickedWord');
+                                    resetGameForNewWord();
                                     
-                                    // If this is the same word and we have progress, load it instead of resetting
-                                    if (hasSavedProgress && pickedWord === currentStoredWord) {
-                                        console.log('[WORDLE_SYNC] Same word with saved progress - loading instead of resetting');
+                                    // After reset, try to load saved progress for this word
+                                    setTimeout(() => {
                                         loadUserData();
-                                    } else {
-                                        // This is a real word change - reset for all devices
-                                        console.log('[WORDLE_SYNC] Word change detected - resetting for sync');
-                                        resetGameForNewWord();
-                                    }
+                                    }, 100);
                                     
                                     // Allow resets again after a small delay
                                     setTimeout(function() {
@@ -1453,20 +1445,12 @@ function setupManualModeListener() {
                     answersColors = [];
                     answersLetters = [];
                     
-                    // Check if this is just a page refresh (same word) vs actual word change
-                    const storageKey = `manual_${manualWordIndex}`;
-                    const hasSavedProgress = localStorage.getItem(`answersLetters_${storageKey}`) && localStorage.getItem(`answersColors_${storageKey}`);
-                    const currentStoredWord = localStorage.getItem('currentPickedWord');
+                    resetGameForNewWord();
                     
-                    // If this is the same word and we have progress, load it instead of resetting
-                    if (hasSavedProgress && pickedWord === currentStoredWord) {
-                        console.log('[WORDLE_SYNC] Same word with saved progress - loading instead of resetting');
+                    // After reset, try to load saved progress for this word
+                    setTimeout(() => {
                         loadUserData();
-                    } else {
-                        // This is a real word change - reset for all devices
-                        console.log('[WORDLE_SYNC] Word change detected - resetting for sync');
-                        resetGameForNewWord();
-                    }
+                    }, 100);
                     
                     // Allow resets again immediately - no need for delay
                     isResetting = false;
