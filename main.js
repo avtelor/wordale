@@ -400,15 +400,23 @@ if (manualMode) {
 
 // Function to ensure all necessary listeners are set up regardless of initial mode
 function ensureListenersSetup() {
+    console.log('[WORDLE_SYNC] ===== ENSURE LISTENERS SETUP CALLED =====');
+    console.log('[WORDLE_SYNC] window.watchSharedCurrentWord available:', !!window.watchSharedCurrentWord);
+    console.log('[WORDLE_SYNC] window.currentWordListenerSetup:', window.currentWordListenerSetup);
     if (window.watchSharedCurrentWord && !window.currentWordListenerSetup) {
         console.log('[WORDLE_SYNC] Setting up current word listener for sync');
         window.currentWordListenerSetup = true;
         
         window.watchSharedCurrentWord(function(newWord) {
+            console.log('[WORDLE_SYNC] ===== WORD CHANGE CALLBACK TRIGGERED =====');
             console.log('[WORDLE_SYNC] Current word change detected:', newWord);
+            console.log('[WORDLE_SYNC] Current pickedWord:', pickedWord);
+            console.log('[WORDLE_SYNC] manualMode variable:', manualMode);
+            console.log('[WORDLE_SYNC] localStorage manualMode:', localStorage.getItem('manualMode'));
             
             // Only react if we're in manual mode
             const isManualMode = manualMode || localStorage.getItem('manualMode') === 'true';
+            console.log('[WORDLE_SYNC] isManualMode calculated as:', isManualMode);
             if (!isManualMode) {
                 console.log('[WORDLE_SYNC] Not in manual mode, ignoring word change');
                 return;
@@ -416,6 +424,9 @@ function ensureListenersSetup() {
             
             const currentWord = pickedWord;
             const manualWordList = window.manualListOfWords || [];
+            console.log('[WORDLE_SYNC] currentWord:', currentWord, 'newWord:', newWord);
+            console.log('[WORDLE_SYNC] manualWordList:', manualWordList);
+            console.log('[WORDLE_SYNC] manualWordList.includes(newWord):', manualWordList.includes(newWord));
             
             if (newWord && newWord !== currentWord && manualWordList.includes(newWord)) {
                 console.log('[WORDLE_SYNC] Applying word change from', currentWord, 'to', newWord);
