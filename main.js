@@ -220,14 +220,19 @@ if (manualMode) {
                                     answersColors = [];
                                     answersLetters = [];
                                     
-                                    // Only reset if we don't have saved progress for this word
+                                    // Check if this is just a page refresh (same word) vs actual word change
                                     const storageKey = `manual_${manualWordIndex}`;
                                     const hasSavedProgress = localStorage.getItem(`answersLetters_${storageKey}`) && localStorage.getItem(`answersColors_${storageKey}`);
-                                    if (!hasSavedProgress) {
-                                        resetGameForNewWord();
-                                    } else {
-                                        console.log('[WORDLE_SYNC] Skipping reset - found saved progress, loading instead');
+                                    const currentStoredWord = localStorage.getItem('currentPickedWord');
+                                    
+                                    // If this is the same word and we have progress, load it instead of resetting
+                                    if (hasSavedProgress && pickedWord === currentStoredWord) {
+                                        console.log('[WORDLE_SYNC] Same word with saved progress - loading instead of resetting');
                                         loadUserData();
+                                    } else {
+                                        // This is a real word change - reset for all devices
+                                        console.log('[WORDLE_SYNC] Word change detected - resetting for sync');
+                                        resetGameForNewWord();
                                     }
                                     
                                     // Allow resets again after a small delay
@@ -245,6 +250,24 @@ if (manualMode) {
                                 lastKnownIndex = newIndex;
                             }
                         });
+                        
+                        // Set up listener for game mode changes
+                        if (window.watchSharedGameMode) {
+                            console.log('[WORDLE_SYNC] Setting up Firebase listener for game mode changes');
+                            window.watchSharedGameMode(function(newMode) {
+                                console.log('[WORDLE_SYNC] Game mode change detected from Firebase:', newMode);
+                                const currentMode = localStorage.getItem('gameMode') || 'test';
+                                
+                                if (newMode && newMode !== currentMode) {
+                                    console.log('[WORDLE_SYNC] Applying game mode change from', currentMode, 'to', newMode);
+                                    localStorage.setItem('gameMode', newMode);
+                                    applyGameMode(newMode);
+                                    openNotification(`משתנה למצב: ${getModeConfig(newMode).title}`);
+                                }
+                            });
+                        } else {
+                            console.log('[WORDLE_SYNC] Firebase watchSharedGameMode function not available');
+                        }
                     }, 3000); // Wait 3 seconds to ensure initial load is complete
                 }
             } else {
@@ -1430,14 +1453,19 @@ function setupManualModeListener() {
                     answersColors = [];
                     answersLetters = [];
                     
-                    // Only reset if we don't have saved progress for this word
+                    // Check if this is just a page refresh (same word) vs actual word change
                     const storageKey = `manual_${manualWordIndex}`;
                     const hasSavedProgress = localStorage.getItem(`answersLetters_${storageKey}`) && localStorage.getItem(`answersColors_${storageKey}`);
-                    if (!hasSavedProgress) {
-                        resetGameForNewWord();
-                    } else {
-                        console.log('[WORDLE_SYNC] Skipping reset - found saved progress, loading instead');
+                    const currentStoredWord = localStorage.getItem('currentPickedWord');
+                    
+                    // If this is the same word and we have progress, load it instead of resetting
+                    if (hasSavedProgress && pickedWord === currentStoredWord) {
+                        console.log('[WORDLE_SYNC] Same word with saved progress - loading instead of resetting');
                         loadUserData();
+                    } else {
+                        // This is a real word change - reset for all devices
+                        console.log('[WORDLE_SYNC] Word change detected - resetting for sync');
+                        resetGameForNewWord();
                     }
                     
                     // Allow resets again immediately - no need for delay
@@ -1453,6 +1481,24 @@ function setupManualModeListener() {
                 lastKnownIndex = newIndex;
             }
         });
+        
+        // Set up listener for game mode changes
+        if (window.watchSharedGameMode) {
+            console.log('[WORDLE_SYNC] Setting up Firebase listener for game mode changes');
+            window.watchSharedGameMode(function(newMode) {
+                console.log('[WORDLE_SYNC] Game mode change detected from Firebase:', newMode);
+                const currentMode = localStorage.getItem('gameMode') || 'test';
+                
+                if (newMode && newMode !== currentMode) {
+                    console.log('[WORDLE_SYNC] Applying game mode change from', currentMode, 'to', newMode);
+                    localStorage.setItem('gameMode', newMode);
+                    applyGameMode(newMode);
+                    openNotification(`משתנה למצב: ${getModeConfig(newMode).title}`);
+                }
+            });
+        } else {
+            console.log('[WORDLE_SYNC] Firebase watchSharedGameMode function not available');
+        }
     } else {
         console.log('[WORDLE_SYNC] Firebase watchSharedManualWordIndex function not available');
     }
@@ -1565,6 +1611,12 @@ function changeGameMode(mode) {
     
     // Store the selected mode
     localStorage.setItem('gameMode', mode);
+    
+    // Broadcast mode change to all devices via Firebase
+    if (window.setSharedGameMode) {
+        console.log('[WORDLE_SYNC] Broadcasting game mode change to Firebase:', mode);
+        window.setSharedGameMode(mode);
+    }
     
     // Apply the mode changes
     applyGameMode(mode);
