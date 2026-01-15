@@ -194,6 +194,13 @@ if (manualMode) {
                                     if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
                                         pickedWord = manualWordList[manualWordIndex];
                                         numOfWordale = manualWordIndex;
+                                        
+                                        // CRITICAL: Update Firebase with current word so other devices sync properly
+                                        console.log('[WORDLE_SYNC] Updating Firebase with current word for consistency:', pickedWord);
+                                        if (window.setSharedCurrentWord) {
+                                            window.setSharedCurrentWord(pickedWord);
+                                        }
+                                        
                                         // Load the saved progress instead of resetting
                                         loadUserData();
                                     }
@@ -210,6 +217,12 @@ if (manualMode) {
                                 if (manualWordList.length > 0 && manualWordIndex >= 0 && manualWordIndex < manualWordList.length) {
                                     pickedWord = manualWordList[manualWordIndex];
                                     numOfWordale = manualWordIndex;
+                                    
+                                    // Update Firebase with current word for consistency
+                                    console.log('[WORDLE_SYNC] Updating Firebase with current word for consistency:', pickedWord);
+                                    if (window.setSharedCurrentWord) {
+                                        window.setSharedCurrentWord(pickedWord);
+                                    }
                                     
                                     // Reset game state completely for all devices
                                     win = false;
@@ -259,6 +272,46 @@ if (manualMode) {
                             });
                         } else {
                             console.log('[WORDLE_SYNC] Firebase watchSharedGameMode function not available');
+                        }
+                        
+                        // Set up listener for direct word changes
+                        if (window.watchSharedCurrentWord) {
+                            console.log('[WORDLE_SYNC] Setting up Firebase listener for current word changes');
+                            window.watchSharedCurrentWord(function(newWord) {
+                                console.log('[WORDLE_SYNC] Current word change detected from Firebase:', newWord);
+                                const currentWord = pickedWord;
+                                const manualWordList = window.manualListOfWords || [];
+                                
+                                if (newWord && newWord !== currentWord && manualWordList.includes(newWord)) {
+                                    console.log('[WORDLE_SYNC] Applying word change from', currentWord, 'to', newWord);
+                                    const newIndex = manualWordList.indexOf(newWord);
+                                    
+                                    // Update local state
+                                    manualWordIndex = newIndex;
+                                    pickedWord = newWord;
+                                    numOfWordale = newIndex;
+                                    
+                                    // Reset game for the new word
+                                    win = false;
+                                    endOfGameToday = false;
+                                    rowCount = 1;
+                                    wordCount = 0;
+                                    currentWord = '';
+                                    answersColors = [];
+                                    answersLetters = [];
+                                    
+                                    resetGameForNewWord();
+                                    
+                                    // Load saved progress for this word if any
+                                    setTimeout(() => {
+                                        loadUserData();
+                                    }, 100);
+                                    
+                                    openNotification(`מילה ${newIndex + 1} מתוך ${manualWordList.length}`);
+                                }
+                            });
+                        } else {
+                            console.log('[WORDLE_SYNC] Firebase watchSharedCurrentWord function not available');
                         }
                     }, 3000); // Wait 3 seconds to ensure initial load is complete
                 }
@@ -1436,6 +1489,12 @@ function setupManualModeListener() {
                     pickedWord = manualWordList[manualWordIndex];
                     numOfWordale = manualWordIndex;
                     
+                    // Update Firebase with current word for consistency
+                    console.log('[WORDLE_SYNC] Updating Firebase with current word for consistency:', pickedWord);
+                    if (window.setSharedCurrentWord) {
+                        window.setSharedCurrentWord(pickedWord);
+                    }
+                    
                     // Reset game state completely for all devices
                     win = false;
                     endOfGameToday = false;
@@ -1482,6 +1541,46 @@ function setupManualModeListener() {
             });
         } else {
             console.log('[WORDLE_SYNC] Firebase watchSharedGameMode function not available');
+        }
+        
+        // Set up listener for direct word changes
+        if (window.watchSharedCurrentWord) {
+            console.log('[WORDLE_SYNC] Setting up Firebase listener for current word changes');
+            window.watchSharedCurrentWord(function(newWord) {
+                console.log('[WORDLE_SYNC] Current word change detected from Firebase:', newWord);
+                const currentWord = pickedWord;
+                const manualWordList = window.manualListOfWords || [];
+                
+                if (newWord && newWord !== currentWord && manualWordList.includes(newWord)) {
+                    console.log('[WORDLE_SYNC] Applying word change from', currentWord, 'to', newWord);
+                    const newIndex = manualWordList.indexOf(newWord);
+                    
+                    // Update local state
+                    manualWordIndex = newIndex;
+                    pickedWord = newWord;
+                    numOfWordale = newIndex;
+                    
+                    // Reset game for the new word
+                    win = false;
+                    endOfGameToday = false;
+                    rowCount = 1;
+                    wordCount = 0;
+                    currentWord = '';
+                    answersColors = [];
+                    answersLetters = [];
+                    
+                    resetGameForNewWord();
+                    
+                    // Load saved progress for this word if any
+                    setTimeout(() => {
+                        loadUserData();
+                    }, 100);
+                    
+                    openNotification(`מילה ${newIndex + 1} מתוך ${manualWordList.length}`);
+                }
+            });
+        } else {
+            console.log('[WORDLE_SYNC] Firebase watchSharedCurrentWord function not available');
         }
     } else {
         console.log('[WORDLE_SYNC] Firebase watchSharedManualWordIndex function not available');

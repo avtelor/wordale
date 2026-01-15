@@ -206,6 +206,34 @@
         }
       };
       
+      // NEW: Function to watch shared current word changes
+      window.watchSharedCurrentWord = function(callback) {
+        try {
+          const currentMode = localStorage.getItem('gameMode') || 'test';
+          console.log('[WORDLE_SYNC] Setting up Firebase listener for current word in mode:', currentMode);
+          const currentWordRef = ref(db, `gameSettings/${currentMode}/currentWord`);
+          let isFirstCall = true;
+          onValue(currentWordRef, (snapshot) => {
+            if (snapshot.exists()) {
+              const newWord = snapshot.val();
+              if (isFirstCall) {
+                isFirstCall = false;
+                console.log('[WORDLE_SYNC] Current word Firebase listener set up, initial value:', newWord);
+                return;
+              }
+              console.log('[WORDLE_SYNC] Firebase detected current word change to:', newWord);
+              callback(newWord);
+            } else {
+              console.log('[WORDLE_SYNC] Current word Firebase listener: snapshot does not exist');
+            }
+          }, (error) => {
+            console.error('[WORDLE_SYNC] Error watching shared current word:', error);
+          });
+        } catch (error) {
+          console.error('[WORDLE_SYNC] Error setting up current word watcher:', error);
+        }
+      };
+      
 window.sendResultToFirebase = function (guessCount) {
 console.log("inFirebase " + guessCount);
 
