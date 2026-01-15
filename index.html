@@ -145,6 +145,57 @@
         }
       };
       
+      // Functions for shared game mode
+      window.getSharedGameMode = function(callback) {
+        console.log('[WORDLE_SYNC] Getting shared game mode from Firebase...');
+        get(child(ref(db), 'gameSettings/mode')).then((snapshot) => {
+          if (snapshot.exists()) {
+            const mode = snapshot.val();
+            console.log('[WORDLE_SYNC] Retrieved game mode from Firebase:', mode);
+            callback(mode);
+          } else {
+            console.log('[WORDLE_SYNC] No game mode found, defaulting to test');
+            callback('test');
+          }
+        }).catch((error) => {
+          console.error('[WORDLE_SYNC] Error getting shared game mode:', error);
+          callback('test');
+        });
+      };
+      
+      window.setSharedGameMode = function(mode) {
+        console.log('[WORDLE_SYNC] Setting shared game mode to:', mode);
+        set(ref(db, 'gameSettings/mode'), mode).then(() => {
+          console.log('[WORDLE_SYNC] Successfully updated game mode in Firebase to:', mode);
+        }).catch((error) => {
+          console.error('[WORDLE_SYNC] Error setting shared game mode:', error);
+        });
+      };
+      
+      window.watchSharedGameMode = function(callback) {
+        try {
+          console.log('[WORDLE_SYNC] Setting up Firebase listener for game mode...');
+          const gameModeRef = ref(db, 'gameSettings/mode');
+          let isFirstCall = true;
+          onValue(gameModeRef, (snapshot) => {
+            if (snapshot.exists()) {
+              const newMode = snapshot.val();
+              if (isFirstCall) {
+                isFirstCall = false;
+                console.log('[WORDLE_SYNC] Game mode Firebase listener set up, initial value:', newMode);
+                return;
+              }
+              console.log('[WORDLE_SYNC] Firebase detected game mode change to:', newMode);
+              callback(newMode);
+            }
+          }, (error) => {
+            console.error('[WORDLE_SYNC] Error watching shared game mode:', error);
+          });
+        } catch (error) {
+          console.error('[WORDLE_SYNC] Error setting up game mode watcher:', error);
+        }
+      };
+      
 window.sendResultToFirebase = function (guessCount) {
 console.log("inFirebase " + guessCount);
 
