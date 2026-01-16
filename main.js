@@ -129,8 +129,10 @@ if (manualMode) {
                     console.log('[WORDLE_SYNC] Skipping loadUserData in original init - game mode restoration will handle it');
                 }
                 
-                // Set up listener for shared word index changes (after initial load)
-                if (window.watchSharedManualWordIndex) {
+                // CRITICAL FIX: Only set up Firebase listener if not already done globally
+                if (window.watchSharedManualWordIndex && !window.globalFirebaseListenerSetup) {
+                    window.globalFirebaseListenerSetup = true; // Global flag to prevent duplicate listeners
+                    console.log('[WORDLE_SYNC] Setting up SINGLE global Firebase listener');
                     let lastKnownIndex = manualWordIndex; // Initialize with current index
                     let listenerSetup = false;
                     let initialLoadComplete = false;
@@ -176,9 +178,13 @@ if (manualMode) {
                             if (newIndex !== lastKnownIndex && newIndex !== manualWordIndex) {
                                 console.log('[WORDLE_SYNC] Word index changed detected: lastKnownIndex=', lastKnownIndex, 'newIndex=', newIndex, 'current manualWordIndex=', manualWordIndex);
                                 
-                                // Don't reset if user is actively typing RIGHT NOW
-                                if (window.preventResets && currentWord && currentWord.length > 0) {
-                                    console.log('[WORDLE_SYNC] User is actively typing - deferring reset. Will sync index but wait for user to finish.');
+                                // ENHANCED CHECK: Don't reset if user is actively playing or recently played
+                                const hasProgress = answersLetters && answersLetters.length > 0;
+                                const isTyping = currentWord && currentWord.length > 0;
+                                const recentActivity = Date.now() - lastResetTime < 5000; // 5 seconds cooldown
+                                
+                                if (window.preventResets || isTyping || recentActivity) {
+                                    console.log('[WORDLE_SYNC] Preventing reset - preventResets:', window.preventResets, 'isTyping:', isTyping, 'recentActivity:', recentActivity);
                                     lastKnownIndex = newIndex;
                                     return;
                                 }
@@ -234,6 +240,9 @@ if (manualMode) {
                                     answersLetters = [];
                                     
                                     resetGameForNewWord();
+                                    
+                                    // Update reset time tracking
+                                    lastResetTime = Date.now();
                                     
                                     // After reset, try to load saved progress for this word
                                     setTimeout(() => {
@@ -400,7 +409,8 @@ if (manualMode) {
 
 // Function to ensure all necessary listeners are set up regardless of initial mode
 function ensureListenersSetup() {
-    if (window.watchSharedCurrentWord && !window.currentWordListenerSetup) {
+    // CRITICAL FIX: Skip if global listener already set up to prevent duplicates
+    if (window.watchSharedCurrentWord && !window.currentWordListenerSetup && !window.globalFirebaseListenerSetup) {
         console.log('[WORDLE_SYNC] Setting up current word listener for sync');
         window.currentWordListenerSetup = true;
         
@@ -1505,9 +1515,9 @@ window.manualModeInit = function() {
 };
 
 function setupManualModeListener() {
-    // Prevent multiple listeners
-    if (window.manualModeListenerSetup) {
-        console.log('[WORDLE_SYNC] Manual mode listener already set up, skipping');
+    // CRITICAL FIX: Check global flag to prevent duplicate listeners
+    if (window.manualModeListenerSetup || window.globalFirebaseListenerSetup) {
+        console.log('[WORDLE_SYNC] Firebase listener already set up globally, skipping duplicate setup');
         return;
     }
     window.manualModeListenerSetup = true;
